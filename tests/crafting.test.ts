@@ -184,3 +184,15 @@ test('nested rewind cannot erase an existing order baseline by cancelling', () =
   ok(w, 'clock', 'set', { now: { elapsedSeconds: 10 } }); ok(w, 'crafting', 'start', { recipe: 'plank' });
   fails(w, 'sequence', 'run', { operations: [ { capability: 'time', action: 'set', input: { now: { elapsedSeconds: 9 } } }, { capability: 'crafting', action: 'cancel', input: {} } ] }, 'CLOCK_BACKWARD');
 });
+
+test('active paid jobs reject invalid catalog reconfiguration while retaining collect and cancel paths', () => {
+  for (const action of ['cancel', 'collect']) {
+    const w = setup(); ok(w, 'crafting', 'start', { recipe: 'plank' }); const before = w.snapshot();
+    const d = w.definition; recipes(d).unrelated = { name: '无效新增配方', inputs: { wood: 1 }, outputs: { missing: 1 }, durationSeconds: 1 };
+    assert.throws(() => reconfigureWorld(registry(), w, d), (error: any) => error.code === 'UNKNOWN_ITEM');
+    assert.deepEqual(w.snapshot(), before);
+    if (action === 'collect') ok(w, 'clock', 'advance', { seconds: 20 });
+    ok(w, 'crafting', action);
+    assert.equal(status(w).job, null); assert.equal(count(w, 'wood'), action === 'cancel' ? 4 : 2); assert.equal(count(w, 'plank'), action === 'collect' ? 2 : 0);
+  }
+});

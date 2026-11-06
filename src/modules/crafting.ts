@@ -64,15 +64,14 @@ function validate(ctx: ReadContext): void {
   if (job) {
     if (!(job.readyAt > job.startedAt)) ctx.fail('INVALID_JOB', '订单完成时间必须晚于开始时间');
     checkItems(ctx, job.inputs); checkItems(ctx, job.outputs);
-  } else {
-    const result = ctx.query('recipes', 'list');
-    if (!object(result) || !Array.isArray(result.recipes)) return ctx.fail('INVALID_RECIPE', '配方提供者没有返回配方列表');
-    const ids = new Set<string>();
-    for (const value of result.recipes) {
-      const recipe = readRecipe(ctx, value);
-      if (ids.has(recipe.id)) ctx.fail('INVALID_RECIPE', `重复配方：${recipe.id}`);
-      ids.add(recipe.id); checkItems(ctx, recipe.inputs); checkItems(ctx, recipe.outputs);
-    }
+  }
+  const result = ctx.query('recipes', 'list');
+  if (!object(result) || !Array.isArray(result.recipes)) return ctx.fail('INVALID_RECIPE', '配方提供者没有返回配方列表');
+  const ids = new Set<string>();
+  for (const value of result.recipes) {
+    const recipe = readRecipe(ctx, value);
+    if (ids.has(recipe.id)) ctx.fail('INVALID_RECIPE', `重复配方：${recipe.id}`);
+    ids.add(recipe.id); checkItems(ctx, recipe.inputs); checkItems(ctx, recipe.outputs);
   }
 }
 export const craftingModule: ModuleDefinition = {
