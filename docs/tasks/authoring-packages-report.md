@@ -76,3 +76,29 @@ Writer tests cover parent creation, paths with spaces, read/write round trip, sa
 The writer requires filesystem support for same-directory hard links; unsupported filesystems fail closed rather than silently falling back to a clobber-prone path. It syncs file data before publication but does not claim crash-proof directory durability or cross-machine filesystem guarantees. The tests exercise concurrent publication calls in one process at the promise level and real filesystem failures; they do not inject low-level write/fsync/close failures or simulate process termination. Cleanup runs in `finally` for ordinary thrown failures.
 
 Module JavaScript remains trusted registered local code. Inspection executes its hooks, matching the existing runtime trust model; authoring introduces no code auto-loading, graphical UI or gameplay kind.
+
+## Review fix round 1 — execute move on the post-removal document
+
+Scope: only `src/authoring/patch.ts`, `tests/patch.test.ts`, and this report. No staging or commits. This section supersedes the original description that the scratch removal was used only for validation.
+
+The P2 review finding was confirmed against the adapter and `fast-json-patch` 3.1.1: the adapter validated the destination on a detached document after removal, then passed an ordinary move to the dependency on the original document. That dependency resolves the destination before removing the source, so an array shift can make a valid destination inaccessible during its premature traversal.
+
+A focused regression was added before the production correction. Its config starts with `items: ["moved", null, {"keep": true}]` and moves item 0 to `items/1/added`. Required result: `[null, {"keep": true, "added": "moved"}]`. The regression also verifies original input/operations are unchanged and a subsequent failed move retains original operation index 1 without changing the caller's source. A companion preservation test covers root-to-root, same-array-path, and nested-package-to-root moves.
+
+RED command:
+
+```sh
+node --test tests/patch.test.ts
+```
+
+Observed: **9 tests, 8 passed, 1 failed**, exit 1. The exact new behavioral failure was `INVALID_PATCH: Patch operation 0: Cannot read properties of null (reading 'added')`. The root/same-path preservation test passed before the correction and is not claimed as independent RED evidence.
+
+The narrow fix retains the dependency's remove result on the detached candidate, validates the destination on `removal.newDocument`, then delegates add with `removal.removed` to the dependency and keeps its new document. It skips the dependency's faulty combined move traversal. All mutations remain dependency-executed; the adapter adds no custom mutation engine. Existing descendant, pointer, own-property and array guards and operation-index error wrapping remain unchanged.
+
+GREEN command:
+
+```sh
+node --test tests/patch.test.ts tests/authoring.test.ts
+```
+
+Observed: **16 tests, 16 passed, 0 failed**, exit 0 (about 2.6 seconds), including all 9 patch tests and all 7 authoring tests. The exact shifted-container regression, root/same-path preservation checks, earlier append/copy/own-name regressions, indexed failures, source preservation, and inspection/restore tests passed. Final integrated full-suite/preflight checks remain root-owned as explicitly assigned; this round does not claim those were rerun.

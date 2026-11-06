@@ -57,10 +57,13 @@ export function patchWorldPackage(source: unknown, operations: unknown): WorldPa
         guard(candidate, from);
         if (op.op === 'move') {
           if (path.length > from.length && from.every((part, offset) => path[offset] === part)) invalid('Move destination cannot be a descendant of its source');
-          // RFC 6902 resolves the destination after removal. The dependency performs
-          // that removal on a scratch document; this adapter only checks the result.
-          const scratch = jsonPatch.applyOperation(copyJson(candidate), { op: 'remove', path: op.from as string }, false, true, true, index).newDocument;
-          guard(scratch, path, true);
+          // The dependency's move traverses the destination before removal, which
+          // fails when removal shifts its container. Delegate both mutations in
+          // RFC 6902 order, then keep the successfully validated detached result.
+          const removal = jsonPatch.applyOperation(copyJson(candidate), { op: 'remove', path: op.from as string }, false, true, true, index);
+          guard(removal.newDocument, path, true);
+          candidate = jsonPatch.applyOperation(removal.newDocument, { op: 'add', path: op.path as string, value: removal.removed }, false, true, true, index).newDocument;
+          continue;
         } else guard(candidate, path, true);
       } else {
         const actual = guard(candidate, path, op.op === 'add');

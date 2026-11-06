@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import type { WorldPackage } from '../src/authoring/contracts.ts';
 import { patchWorldPackage } from '../src/authoring/patch.ts';
 const source = () => ({ format: 1, world: { id: 'world', title: 'World', version: '1.0.0', modules: [{ id: 'one', module: 'unknown', config: { items: ['a', 'b', 'c'], 'a/b': { '~key': 1 }, hasOwnProperty: 'data', '01': 'numeric object key' } }] }, demo: [] });
 const config = '/world/modules/0/config';
@@ -95,4 +96,29 @@ test('add-like final destinations may create own nonreserved names that shadow i
   assert.equal(result.world.modules[0]!.config.valueOf, 'own string');
   assert.throws(() => patchWorldPackage(source(), [{ op: 'copy', from: `${config}/toString`, path: `${config}/copy` }]), { code: 'INVALID_PATCH' });
   assert.throws(() => patchWorldPackage(source(), [{ op: 'add', path: `${config}/toString/nested`, value: 1 }]), { code: 'INVALID_PATCH' });
+});
+
+test('move resolves a shifted destination container only after removal', () => {
+  const pack = source() as WorldPackage;
+  pack.world.modules[0]!.config.items = ['moved', null, { keep: true }];
+  const before = structuredClone(pack);
+  const operations = [{ op: 'move', from: `${config}/items/0`, path: `${config}/items/1/added` }];
+  const result = patchWorldPackage(pack, operations);
+  assert.deepEqual(result.world.modules[0]!.config.items, [null, { keep: true, added: 'moved' }]);
+  assert.deepEqual(pack, before);
+  assert.deepEqual(operations, [{ op: 'move', from: `${config}/items/0`, path: `${config}/items/1/added` }]);
+  assert.throws(() => patchWorldPackage(pack, [
+    ...operations,
+    { op: 'move', from: `${config}/items/1/added`, path: `${config}/items/0/invalid` },
+  ]), { code: 'INVALID_PATCH', message: /^Patch operation 1:/ });
+  assert.deepEqual(pack, before);
+});
+
+test('dependency-executed move removal and addition retain root and same-path behavior', () => {
+  const pack = source();
+  assert.deepEqual(patchWorldPackage(pack, [{ op: 'move', from: '', path: '' }]), pack);
+  assert.deepEqual(patchWorldPackage(pack, [{ op: 'move', from: `${config}/items/1`, path: `${config}/items/1` }]), pack);
+  const wrapped = source() as WorldPackage;
+  wrapped.world.modules[0]!.config.replacement = JSON.parse(JSON.stringify(pack));
+  assert.deepEqual(patchWorldPackage(wrapped, [{ op: 'move', from: `${config}/replacement`, path: '' }]), pack);
 });
