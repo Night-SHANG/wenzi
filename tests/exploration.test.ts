@@ -22,11 +22,29 @@ const ruleProbe: ModuleDefinition = {
   queries: { get: { execute(ctx, input) { assert.deepEqual(input, { rule: 'wood' }); return ctx.state<{value: JsonValue}>().value; } } },
   commands: { set: { execute(ctx, input) { ctx.write({ value: input.value! }); return null; } } }
 };
+const locationProbe: ModuleDefinition = {
+  manifest: { id: 'test.location', title: '外部地点', version: '1.0.0', apiVersion: 1, stateVersion: 1, provides: { location: '1.0.0' } },
+  initialState: config => ({ description: config.description! }),
+  queries: {
+    current: { execute: () => ({ id: 'forest' }) },
+    describe: { execute(ctx, input) { assert.deepEqual(input, { location: 'forest' }); return Object.hasOwn(ctx.config, 'override') ? ctx.config.override! : ctx.state<{ description: JsonValue }>().description; } }
+  },
+  commands: { set: { execute(ctx, input) { ctx.write({ description: input.description! }); return null; } } }
+};
+const inventoryProbe: ModuleDefinition = {
+  manifest: { id: 'test.inventory', title: '外部库存', version: '1.0.0', apiVersion: 1, stateVersion: 1, provides: { inventory: '1.0.0' } },
+  initialState: () => ({ list: { items: [], limits: {} }, count: { quantity: 0 } }),
+  queries: {
+    list: { execute: ctx => ctx.state<{ list: JsonValue }>().list },
+    count: { execute: ctx => ctx.state<{ count: JsonValue }>().count }
+  },
+  commands: { set: { execute(ctx, input) { ctx.write({ ...ctx.state<JsonObject>(), ...input }); return null; } } }
+};
 const timeConsumer: ModuleDefinition = {
   manifest: { id: 'test.time-consumer', title: '时间适配测试', version: '1.0.0', apiVersion: 1, stateVersion: 1, provides: {}, requires: { time: { version: '^1.0.0' } } },
   initialState: () => ({}), queries: { read: { execute: (ctx, input) => readSimulationTime(ctx, input.notBefore as number | undefined) } }
 };
-const registry = () => new ModuleRegistry([...capacityModules, inventoryModule, ...timeModules, locationModule, gatheringRulesModule, gatheringModule, clockProbe, ruleProbe, timeConsumer]);
+const registry = () => new ModuleRegistry([...capacityModules, inventoryModule, ...timeModules, locationModule, gatheringRulesModule, gatheringModule, clockProbe, ruleProbe, locationProbe, inventoryProbe, timeConsumer]);
 function definition(): WorldDefinition { return { id: 'exploration', title: '探索', version: '1.0.0', modules: [
   { id: 'capacity', module: 'capacity.slots', config: {} },
   { id: 'inventory', module: 'inventory.basic', config: { items: { wood: { name: '木材', weight: 1, volume: 1, length: 1 }, stone: { name: '石头', weight: 1, volume: 1, length: 1 } }, containers: { player: { limits: { slots: 2 }, items: {} } } } },
@@ -121,4 +139,27 @@ test('legal own-property IDs work for locations rules sites and inventory items'
     instance(d, 'gathering').config.sites = { valueOf: { location: 'valueOf', rule: 'toString' } };
   }); ok(w, 'location', 'move', { to: 'valueOf' }); ok(w, 'gathering', 'gather', { site: 'valueOf' }); assert.deepEqual(w.query('inventory', 'count', { container: 'player', item: 'hasOwnProperty' }), { quantity: 2 });
   assert.throws(() => w.query('location', 'describe', { location: 'toString' })); assert.throws(() => w.query('rules', 'get', { rule: 'valueOf' }));
+});
+
+
+test('external location descriptions must have matching identity and valid required fields at assembly', () => {
+  for (const description of [null, [], {}, { id: 'town', name: '镇口', description: '', exits: [] }, { id: 'forest', name: '', description: '', exits: [] }, { id: 'forest', name: '林地', description: 1, exits: [] }, { id: 'forest', name: '林地', description: '', exits: [null] }, { id: 'forest', name: '林地', description: '', exits: [''] }, { id: 'forest', name: '林地', description: '', exits: ['town', 'town'] }]) {
+    assert.throws(() => setup(d => { const location = instance(d, 'location'); location.module = 'test.location'; location.config = { description }; }), error => (error as any).code === 'INVALID_LOCATION');
+  }
+});
+test('external location replacement and malformed transactions preserve the usable world snapshot', () => {
+  const w = setup(d => { const location = instance(d, 'location'); location.module = 'test.location'; location.config = { description: { id: 'forest', name: '林地', description: '', exits: ['town'] } }; });
+  assert.deepEqual(ok(w, 'gathering', 'gather', { site: 'forestWood' }).value, { site: 'forestWood', item: 'wood', quantity: 3, readyAt: 30 });
+  for (const description of [null, { id: 'town', name: '镇口', description: '', exits: [] }]) {
+    failAtomic(w, 'location', 'set', { description }, 'INVALID_LOCATION');
+    const before = w.snapshot(), d = w.definition;
+    instance(d, 'location').config.override = description;
+    assert.throws(() => reconfigureWorld(registry(), w, d)); assert.deepEqual(w.snapshot(), before);
+  }
+  assert.deepEqual(count(w), { quantity: 3 });
+});
+test('external inventory reference queries must return valid list and count envelopes atomically', () => {
+  const w = setup(d => { const inventory = instance(d, 'inventory'); inventory.module = 'test.inventory'; inventory.config = {}; });
+  for (const list of [null, [], {}, { items: null, limits: {} }, { items: [], limits: null }, { items: [], limits: [] }]) failAtomic(w, 'inventory', 'set', { list }, 'INVALID_INVENTORY');
+  for (const count of [null, [], {}, { quantity: -1 }, { quantity: 0.5 }, { quantity: Number.MAX_SAFE_INTEGER + 1 }]) failAtomic(w, 'inventory', 'set', { count }, 'INVALID_INVENTORY');
 });

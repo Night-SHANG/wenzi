@@ -35,8 +35,30 @@ function currentLocation(ctx: ReadContext): string {
   if (typeof result !== 'object' || result === null || Array.isArray(result) || typeof result.id !== 'string' || !result.id.length) return ctx.fail('INVALID_LOCATION', '地点能力没有返回有效的当前位置');
   return result.id;
 }
+function checkLocation(ctx: ReadContext, id: string): void {
+  const result = ctx.query('location', 'describe', { location: id });
+  if (typeof result !== 'object' || result === null || Array.isArray(result)
+    || result.id !== id || typeof result.name !== 'string' || !result.name.length
+    || typeof result.description !== 'string' || !Array.isArray(result.exits)
+    || result.exits.some(exit => typeof exit !== 'string' || !exit.length || exit.length > 128)
+    || new Set(result.exits).size !== result.exits.length) {
+    ctx.fail('INVALID_LOCATION', `地点能力没有返回有效的地点描述：${id}`);
+  }
+}
+function checkContainer(ctx: ReadContext, container: string): void {
+  const result = ctx.query('inventory', 'list', { container });
+  if (typeof result !== 'object' || result === null || Array.isArray(result)
+    || !Array.isArray(result.items) || typeof result.limits !== 'object'
+    || result.limits === null || Array.isArray(result.limits)) {
+    ctx.fail('INVALID_INVENTORY', `库存能力没有返回有效的容器信息：${container}`);
+  }
+}
 function checkItem(ctx: ReadContext, item: string): void {
-  ctx.query('inventory', 'count', { container: (ctx.config as unknown as Config).container, item });
+  const result = ctx.query('inventory', 'count', { container: (ctx.config as unknown as Config).container, item });
+  if (typeof result !== 'object' || result === null || Array.isArray(result)
+    || typeof result.quantity !== 'number' || !Number.isSafeInteger(result.quantity) || result.quantity < 0) {
+    ctx.fail('INVALID_INVENTORY', `库存能力没有返回有效的物品数量：${item}`);
+  }
 }
 export const gatheringModule: ModuleDefinition = {
   manifest: { id: 'gathering.cooldown', title: '可再生采集', version: '1.0.0', apiVersion: 1, stateVersion: 1, provides: { gathering: '1.0.0' }, requires: { location: { version: '^1.0.0' }, 'gather-rule': { version: '^1.0.0' }, inventory: { version: '^1.0.0' }, time: { version: '^1.0.0' } } },
@@ -45,9 +67,9 @@ export const gatheringModule: ModuleDefinition = {
   initialState: () => ({ cooldowns: {} }),
   validate(ctx) {
     const config = ctx.config as unknown as Config, state = ctx.state<State>();
-    ctx.query('inventory', 'list', { container: config.container });
+    checkContainer(ctx, config.container);
     for (const value of Object.values(config.sites)) {
-      ctx.query('location', 'describe', { location: value.location });
+      checkLocation(ctx, value.location);
       checkItem(ctx, rule(ctx, value.rule).item);
     }
     for (const [id, cooldown] of Object.entries(state.cooldowns)) {
