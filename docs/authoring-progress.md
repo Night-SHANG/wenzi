@@ -2,6 +2,8 @@
 
 记录：2026-11-06 23:33 北京时间（UTC+08:00）。工程版本：0.4.0-alpha.1。
 
+本页保留 v0.4 历史。该版已进入 GitHub main（f86be17），Actions run 42246209860 的 Linux/Windows 两组均成功；后续 v0.5 探索与生产进展见 [frontier-progress.md](frontier-progress.md)。
+
 仓库由用户指定：[Night-SHANG/wenzi](https://github.com/Night-SHANG/wenzi)。此前 v0.3 工程与 Git 历史保留，本轮沿用同一独立模块宿主继续扩展。所有现有和未来能力仍需模块化。
 
 ## 当前实现

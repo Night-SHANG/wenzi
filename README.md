@@ -1,10 +1,10 @@
 # 模块化文字世界
 
-**0.4.0-alpha.1 · 可运行开发工程**
+**0.5.0-alpha.1 · 模块化探索与生产**
 
 这是独立的文字世界项目，与词条无限组合游戏分开。全部现有和未来系统、规则、内容、数据、表现与操作都按模块组织。仓库中的经营、战棋和叙事只是架构验证样例，不限制未来玩法。
 
-当前可运行模块宿主、16 个内置模块定义、6 个世界配置和一个从外部文件加载的作者模块。作者可发现模块、复制世界、用标准 JSON Patch 修改装配、校验后导出并运行。界面使用独立文字视图与命令行适配器；正式游戏 UI 和完整玩法仍在继续开发。
+当前可运行模块宿主、22 个内置模块定义、8 个世界配置和一个从外部文件加载的作者模块。新增探索、可再生采集、独立配方与定时制作，已与库存、交易和存档组成可重复流程。作者可发现模块、复制世界、用标准 JSON Patch 修改装配、校验后导出并运行。界面使用独立文字视图与命令行适配器；正式游戏 UI 和完整玩法仍在继续开发。
 
 源码仓库：[Night-SHANG/wenzi](https://github.com/Night-SHANG/wenzi)。当前 CI：[Modular runtime checks](https://github.com/Night-SHANG/wenzi/actions/workflows/preflight.yml)。仓库公开不代表主项目已选择开源授权协议；依赖许可见 `THIRD_PARTY.md`。
 
@@ -27,6 +27,8 @@ node dist/cli/index.js list
 node dist/cli/index.js demo farm
 node dist/cli/index.js demo tactics
 node dist/cli/index.js demo story
+node dist/cli/index.js demo frontier
+node dist/cli/index.js play frontier
 node dist/cli/index.js play farm
 ```
 
@@ -72,8 +74,12 @@ JSON Patch 支持 `add/remove/replace/move/copy/test`。建议在按数组位置
 | farm-greenhouse | 独立生长规则配置 | 替换生长能力而不改宿主 |
 | tactics | 格子移动、命中、伤害、双方回合、终局 | 宿主不要求经营、背包或时间模块 |
 | story | 叙事节点、选择、终点 | 宿主不要求角色、战斗或时间模块 |
+| frontier | 地点移动、资源恢复、两段制作、出售与存档 | 多模块共享真实资源，规则与进度独立 |
+| frontier-continuous | 同一探索生产世界按模拟秒推进 | 更换时钟保留采集冷却和已付款订单 |
 
 示例数值是作者测试配置，未进行正式平衡。连续时间模块接收显式秒数，尚未绑定真实帧循环。战棋双方可手动操作，尚无 AI、寻路或地形效果。
+
+探索世界的完整操作、模块契约与失败恢复见 [docs/frontier.md](docs/frontier.md)。运行 `demo frontier` 可自动完成采集木料/石料/芦苇、制作木板和工具包、出售一轮，最终获得 18 金币；资源恢复后可以继续循环。制作途中可以保存恢复或更换时钟，已经支付的订单不会被后续配方编辑重新解释。
 
 ## 实际操作一轮
 
@@ -147,4 +153,4 @@ node dist/cli/index.js demo examples/custom-world.json --plugin examples/custom-
 
 成熟游戏的具体源码研究已保留，但尚未移植 CDDA、Wesnoth、Widelands 或 micropolisJS 的规则。核心基础校验直接复用 Ajv、semver，世界修改复用 fast-json-patch；游戏样例独立编写，用于验证承接规则所需的模块边界。详见 [THIRD_PARTY.md](THIRD_PARTY.md)。
 
-本地实际检查结果在 `artifacts/`，工程包包含 `verification/`。CI 配置覆盖 Linux 和 Windows，实际结果以对应提交的 Actions 状态为准；提交或本地检查通过不等于远端 CI 已通过。设计与执行记录见 `docs/`。
+本地实际检查结果在 `artifacts/`，工程包包含 `verification/`。上一版提交 `f86be17` 的 [Actions run 42246209860](https://github.com/Night-SHANG/wenzi/actions/runs/42246209860) 已在 Linux 和 Windows 通过；新版提交需以自己的运行结果为准，不能沿用旧结果。当前进度见 [docs/frontier-progress.md](docs/frontier-progress.md)，设计与执行记录见 `docs/`。

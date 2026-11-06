@@ -26,7 +26,8 @@ async function temporary(run: (directory: string) => Promise<void>): Promise<voi
 
 test('authors can discover built-in and external module schemas without assembling a world', () => {
   const modules = success(['modules', '--json']);
-  assert.equal(modules.length, 16);
+  assert.ok(modules.some((entry: any) => entry.manifest.id === 'gathering.cooldown'));
+  assert.ok(modules.some((entry: any) => entry.manifest.id === 'crafting.single'));
   assert.ok(modules.some((entry: any) => entry.manifest.id === 'capacity.physical'));
   const inventory = success(['describe', 'inventory.basic', '--json']);
   assert.equal(inventory.manifest.id, 'inventory.basic');

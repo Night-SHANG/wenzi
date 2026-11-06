@@ -35,6 +35,12 @@ fast-json-patch 3.1.1 无运行时依赖，其来源 tag 对应提交 `9d313ac01
 
 随机样例使用常见 xorshift32 形式，具体算法和 seed 归一语义在 random.ts 中明确；它用于可复现验证，不用于密码学。
 
+## v0.5 探索生产采用范围
+
+生产配方针对性核查固定到 Widelands `29753773d9c130e2a6a835ee6a14ad2bf317371d` 的 [bakery/init.lua](https://github.com/widelands/widelands/blob/29753773d9c130e2a6a835ee6a14ad2bf317371d/data/tribes/buildings/productionsites/empire/bakery/init.lua) 与 [production_program.cc](https://github.com/widelands/widelands/blob/29753773d9c130e2a6a835ee6a14ad2bf317371d/src/logic/map_objects/tribes/production_program.cc)。采用其“声明投入/产出/时长、消耗不足不部分扣料”的职责与失败语义作为参考；实际原子操作复用本项目已有宿主和库存代码。来源生产实现依赖其 Game、ProductionSite、InputQueue、工人和物流系统，本轮不直接移植，不导入另一套状态权威。
+
+来源 [README](https://github.com/widelands/widelands/blob/29753773d9c130e2a6a835ee6a14ad2bf317371d/README.md) 声明 GPL v2+。新增模块为本项目独立实现，没有复制/翻译上述代码、配方数据集、素材或游戏数值；没有新增第三方依赖。详见 [探索生产指南](docs/frontier.md)。
+
 ## 主项目发布许可
 
 主工程目前是用户的独立开发工程，package.json 标记 private / UNLICENSED；尚未替用户选择对外开源许可。此标记不改变上面第三方依赖的许可。后续确实移植其他来源的源码时，要按具体文件重新记录组合和分发条件。

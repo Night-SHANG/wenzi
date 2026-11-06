@@ -21,7 +21,9 @@ report('running');
 try {
   const inputs=fingerprint('built-smoke');
   temporary=mkdtempSync(join(tmpdir(),'text-world-built-'));
-  for(const name of ['farm','farm-continuous','farm-physical','farm-greenhouse','tactics','story']){
+  const names=run(['list','--json']);
+  assert.ok(Array.isArray(names)&&names.includes('frontier')&&names.includes('frontier-continuous'));
+  for(const name of names){
     const save=join(temporary,`${name}.json`);
     const output=run(['demo',name,'--json','--save',save]);
     const restored=run(['inspect',save,'--json']);
@@ -58,9 +60,41 @@ try {
   const research=run(['demo',researchEdited,'--plugin',plugin,'--json']);
   assert.equal(research.snapshot.modules.research.state.progress,13);
   results.push({world:'authored-external-module',actions:research.results.length,revision:research.snapshot.revision,ok:true});
+  const frontierFork=join(temporary,'my frontier.json');
+  const frontierEdited=join(temporary,'frontier-edited.json');
+  const frontierPatch=join(temporary,'frontier.patch.json');
+  assert.equal(run(['fork','frontier','--id','author.smoke-frontier','--out',frontierFork,'--json']).ok,true);
+  const frontierPack=JSON.parse(readFileSync(frontierFork,'utf8'));
+  const ruleIndex=frontierPack.world.modules.findIndex(instance=>instance.id==='gather-rules');
+  assert.ok(ruleIndex>=0);
+  writeFileSync(frontierPatch,JSON.stringify([
+    {op:'test',path:`/world/modules/${ruleIndex}/id`,value:'gather-rules'},
+    {op:'replace',path:`/world/modules/${ruleIndex}/config/rules/wood/quantity`,value:4}
+  ]));
+  assert.equal(run(['patch',frontierFork,'--patch',frontierPatch,'--out',frontierEdited,'--run-demo','--json']).ok,true);
+  const frontier=run(['demo',frontierEdited,'--json']);
+  assert.equal(frontier.snapshot.modules.market.state.coins,18);
+  assert.equal(frontier.snapshot.modules.inventory.state.containers.player.wood,2);
+  assert.equal(frontier.snapshot.modules.workshop.state.job,null);
+  results.push({world:'authored-frontier',actions:frontier.results.length,revision:frontier.snapshot.revision,ok:true});
+  const checkpoint=join(temporary,'frontier checkpoint.save.json');
+  const resumed=join(temporary,'frontier resumed.save.json');
+  const originalFrontier=JSON.parse(readFileSync(resolve('worlds/frontier.json'),'utf8'));
+  const commands=originalFrontier.demo.map(command=>`do ${command.target} ${command.action} ${JSON.stringify(command.input??{})}`);
+  commands.push(`save ${checkpoint}`,'do location move {"to":"forest"}','do gathering gather {"site":"wood"}',`load ${checkpoint}`,`save ${resumed}`,'exit','');
+  const interactive=spawnSync(process.execPath,[cli,'play','frontier'],{cwd:temporary,input:commands.join('\n'),encoding:'utf8',timeout:20000});
+  assert.equal(interactive.status,0,interactive.stderr||String(interactive.error));
+  assert.doesNotMatch(interactive.stdout,/操作未生效|未完成：/);
+  assert.match(interactive.stdout,/已恢复：/);
+  const beforeResume=JSON.parse(readFileSync(checkpoint,'utf8'));
+  const afterResume=JSON.parse(readFileSync(resumed,'utf8'));
+  assert.equal(beforeResume.modules.market.state.coins,18);
+  assert.equal(beforeResume.modules.inventory.state.containers.player.wood,1);
+  assert.deepEqual(afterResume,beforeResume);
+  results.push({world:'interactive-frontier-save-load',actions:originalFrontier.demo.length+2,revision:afterResume.revision,ok:true});
   assert.deepEqual(fingerprint('built-smoke'),inputs,'Verification inputs changed during built smoke');
   report('passed',{fingerprint:inputs});
-  console.log('构建后的 JS、跨目录启动、世界创作闭环、外部模块与文件存档验证通过');
+  console.log('构建后的 JS、跨目录启动、世界创作、外部模块、交互探索生产与文件存档验证通过');
 } catch(error) {
   report('failed',{error:String(error)});
   throw error;

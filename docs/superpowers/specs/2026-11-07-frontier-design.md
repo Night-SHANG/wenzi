@@ -73,11 +73,11 @@
 - `collect({})`：必须存在已完成订单并位于允许地点；按冻结 outputs 逐项 inventory.add，全部成功才清空订单并发出 `crafting.collected`，返回 `{recipe,batches,outputs}`。背包满不阻止时间推进，成品保留待领取。
 - `cancel({})`：任何地点可取消存在的订单，包括已完成但未领取的订单；按冻结 inputs 原数退款，全部成功才清空订单，发出 `crafting.cancelled`，返回 `{recipe,batches,refunded}`。退款放不下时保留订单和全部库存。
 - `status({}) -> {job,ready,remainingSeconds}`；空闲为 `{job:null,ready:false,remainingSeconds:0}`，查询没有副作用。
-- 时间与输入输出都在 start 冻结；修改或删除配方不能改动已经支付的订单。工坊配置和存档校验仍要求冻结物品存在、容器存在、0<=startedAt<readyAt、绑定时钟>=startedAt。没有订单时仍校验当前配方清单的所有物品引用。
+- 时间与输入输出都在 start 冻结；修改或删除配方不能改动已经支付的订单。工坊配置和存档校验仍要求冻结物品存在、容器存在、0<=startedAt<readyAt、绑定时钟>=startedAt。无论是否有订单，都独立校验当前配方清单的全部物品引用；不要求原订单的配方 ID 仍在清单内。错误的新配方应在重装时拒绝，不能等到领取或退款才发现。
 
 ### view.frontier.text / text-view
 
-文件 `src/modules/frontier-view.ts` 导出 `frontierViewModule`。只查询 location、gathering、crafting、inventory、market、time，配置 `{title,container}`；空状态。render 返回现有 `{title,lines:string[]}`，展示当前地点与可达出口、此处采集点及冷却、物品、金币、订单与简短操作提示。完整动作 schema 继续由 CLI actions 提供。纯查询，不自动派发命令。
+文件 `src/modules/frontier-view.ts` 导出 `frontierViewModule`。只查询 location、gathering、crafting、recipes、inventory、market、time，配置 `{title,container}`；空状态。render 返回现有 `{title,lines:string[]}`，展示当前地点与可达出口、此处采集点及冷却、物品、金币、配方、订单与简短操作提示。动作提示使用绑定提供者 ID 和查询返回的内容 ID，不写死世界实例名称。完整动作 schema 继续由 CLI actions 提供。纯查询，不自动派发命令。
 
 ## 世界与文字推演
 

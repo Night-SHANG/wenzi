@@ -1,0 +1,363 @@
+{
+  "format": 1,
+  "world": {
+    "id": "world.frontier",
+    "title": "边境工坊 · 连续时间",
+    "version": "1.0.0",
+    "description": "同一边境工坊，使用显式模拟秒数推进制作与资源恢复。移动和采集不自动推进时间。",
+    "entryView": {
+      "instance": "view",
+      "query": "render"
+    },
+    "modules": [
+      {
+        "id": "capacity",
+        "module": "capacity.slots",
+        "config": {}
+      },
+      {
+        "id": "inventory",
+        "module": "inventory.basic",
+        "config": {
+          "items": {
+            "wood": {
+              "name": "木料",
+              "weight": 500,
+              "volume": 700,
+              "length": 600
+            },
+            "stone": {
+              "name": "石料",
+              "weight": 1000,
+              "volume": 400,
+              "length": 100
+            },
+            "reed": {
+              "name": "芦苇",
+              "weight": 20,
+              "volume": 50,
+              "length": 700
+            },
+            "plank": {
+              "name": "木板",
+              "weight": 400,
+              "volume": 500,
+              "length": 600
+            },
+            "toolkit": {
+              "name": "工具包",
+              "weight": 1500,
+              "volume": 1300,
+              "length": 350
+            }
+          },
+          "containers": {
+            "player": {
+              "limits": {
+                "slots": 8,
+                "maxWeight": 20000,
+                "maxVolume": 30000,
+                "maxLength": 1000
+              },
+              "items": {}
+            }
+          }
+        },
+        "bindings": {
+          "capacity": "capacity"
+        }
+      },
+      {
+        "id": "clock",
+        "module": "time.continuous",
+        "config": {}
+      },
+      {
+        "id": "location",
+        "module": "location.nodes",
+        "config": {
+          "start": "town",
+          "nodes": {
+            "town": {
+              "name": "镇口工坊",
+              "description": "工坊与收购摊位就在镇口。带回材料后，可以在这里制作并领取产品。",
+              "exits": [
+                "forest",
+                "quarry",
+                "river"
+              ]
+            },
+            "forest": {
+              "name": "林地",
+              "description": "沿着林间小路，可以收集可再生的木料。东侧的小径通往河滩。",
+              "exits": [
+                "town",
+                "river"
+              ]
+            },
+            "quarry": {
+              "name": "采石场",
+              "description": "浅层石料散落在路边，收集后需要等待新的材料补充。",
+              "exits": [
+                "town"
+              ]
+            },
+            "river": {
+              "name": "河滩",
+              "description": "水边生长着芦苇，可用作工具包的绑绳材料。",
+              "exits": [
+                "town",
+                "forest"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": "gather-rules",
+        "module": "gathering.rules",
+        "config": {
+          "rules": {
+            "wood": {
+              "name": "收集木料",
+              "item": "wood",
+              "quantity": 3,
+              "cooldownSeconds": 30
+            },
+            "stone": {
+              "name": "收集石料",
+              "item": "stone",
+              "quantity": 2,
+              "cooldownSeconds": 40
+            },
+            "reed": {
+              "name": "收割芦苇",
+              "item": "reed",
+              "quantity": 3,
+              "cooldownSeconds": 20
+            }
+          }
+        }
+      },
+      {
+        "id": "gathering",
+        "module": "gathering.cooldown",
+        "config": {
+          "container": "player",
+          "sites": {
+            "wood": {
+              "location": "forest",
+              "rule": "wood"
+            },
+            "stone": {
+              "location": "quarry",
+              "rule": "stone"
+            },
+            "reed": {
+              "location": "river",
+              "rule": "reed"
+            }
+          }
+        },
+        "bindings": {
+          "location": "location",
+          "gather-rule": "gather-rules",
+          "inventory": "inventory",
+          "time": "clock"
+        }
+      },
+      {
+        "id": "recipes",
+        "module": "recipes.catalog",
+        "config": {
+          "recipes": {
+            "plank": {
+              "name": "木板",
+              "inputs": {
+                "wood": 2
+              },
+              "outputs": {
+                "plank": 2
+              },
+              "durationSeconds": 20
+            },
+            "toolkit": {
+              "name": "工具包",
+              "inputs": {
+                "plank": 2,
+                "stone": 1,
+                "reed": 1
+              },
+              "outputs": {
+                "toolkit": 1
+              },
+              "durationSeconds": 30
+            }
+          }
+        }
+      },
+      {
+        "id": "workshop",
+        "module": "crafting.single",
+        "config": {
+          "container": "player",
+          "locations": [
+            "town"
+          ]
+        },
+        "bindings": {
+          "inventory": "inventory",
+          "time": "clock",
+          "recipes": "recipes",
+          "location": "location"
+        }
+      },
+      {
+        "id": "market",
+        "module": "market.fixed",
+        "config": {
+          "container": "player",
+          "prices": {
+            "wood": 1,
+            "stone": 2,
+            "reed": 1,
+            "plank": 4,
+            "toolkit": 18
+          },
+          "initialCoins": 0
+        },
+        "bindings": {
+          "inventory": "inventory"
+        }
+      },
+      {
+        "id": "view",
+        "module": "view.frontier.text",
+        "config": {
+          "title": "边境工坊 · 连续时间",
+          "container": "player"
+        },
+        "bindings": {
+          "location": "location",
+          "gathering": "gathering",
+          "crafting": "workshop",
+          "recipes": "recipes",
+          "inventory": "inventory",
+          "market": "market",
+          "time": "clock"
+        }
+      }
+    ]
+  },
+  "demo": [
+    {
+      "target": "location",
+      "action": "move",
+      "input": {
+        "to": "forest"
+      }
+    },
+    {
+      "target": "gathering",
+      "action": "gather",
+      "input": {
+        "site": "wood"
+      }
+    },
+    {
+      "target": "location",
+      "action": "move",
+      "input": {
+        "to": "town"
+      }
+    },
+    {
+      "target": "location",
+      "action": "move",
+      "input": {
+        "to": "quarry"
+      }
+    },
+    {
+      "target": "gathering",
+      "action": "gather",
+      "input": {
+        "site": "stone"
+      }
+    },
+    {
+      "target": "location",
+      "action": "move",
+      "input": {
+        "to": "town"
+      }
+    },
+    {
+      "target": "location",
+      "action": "move",
+      "input": {
+        "to": "river"
+      }
+    },
+    {
+      "target": "gathering",
+      "action": "gather",
+      "input": {
+        "site": "reed"
+      }
+    },
+    {
+      "target": "location",
+      "action": "move",
+      "input": {
+        "to": "town"
+      }
+    },
+    {
+      "target": "workshop",
+      "action": "start",
+      "input": {
+        "recipe": "plank"
+      }
+    },
+    {
+      "target": "clock",
+      "action": "advance",
+      "input": {
+        "seconds": 20
+      }
+    },
+    {
+      "target": "workshop",
+      "action": "collect",
+      "input": {}
+    },
+    {
+      "target": "workshop",
+      "action": "start",
+      "input": {
+        "recipe": "toolkit"
+      }
+    },
+    {
+      "target": "clock",
+      "action": "advance",
+      "input": {
+        "seconds": 30
+      }
+    },
+    {
+      "target": "workshop",
+      "action": "collect",
+      "input": {}
+    },
+    {
+      "target": "market",
+      "action": "sell",
+      "input": {
+        "item": "toolkit",
+        "quantity": 1
+      }
+    }
+  ]
+}

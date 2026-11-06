@@ -47,14 +47,17 @@ test('offline packaging rejects evidence after relevant bytes change', async () 
     await put(root, 'examples/custom-world.json', '{}');
     await put(root, 'examples/custom-module.mjs', '// fixture');
     await put(root, 'examples/farm-authoring.patch.json', '[]');
+    await put(root, 'worlds/frontier.json', JSON.stringify({demo:[{target:'fixture',action:'act',input:{}}]}));
     // Exercise the real smoke script with a tiny CLI protocol fixture; no checkout outputs are changed.
     await put(root, 'dist/cli/index.js', `import {readFileSync,writeFileSync} from 'node:fs';
 const op=process.argv[2],name=process.argv[3]??'';
-const snapshot={revision:1,definition:{modules:[{module:name.includes('authored-farm')?'capacity.physical':'capacity.slots'}]},modules:{research:{state:{progress:name.includes('authored-research-edited')?13:7}},market:{state:{coins:10}}}};
+let snapshot={revision:1,definition:{modules:[{module:name.includes('authored-farm')?'capacity.physical':'capacity.slots'}]},modules:{research:{state:{progress:name.includes('authored-research-edited')?13:7}},market:{state:{coins:name.includes('frontier')?18:10}},inventory:{state:{containers:{player:{wood:name.includes('frontier-edited')?2:1}}}},workshop:{state:{job:null}}}};
 if(op==='inspect') console.log(readFileSync(name,'utf8'));
+else if(op==='list') console.log(JSON.stringify(['frontier','frontier-continuous']));
 else if(op==='modules') console.log(JSON.stringify(Array(16).fill({})));
-else if(op==='fork'||op==='patch') {writeFileSync(process.argv[process.argv.indexOf('--out')+1],'{}');console.log(JSON.stringify({ok:true}));}
+else if(op==='fork'||op==='patch') {writeFileSync(process.argv[process.argv.indexOf('--out')+1],JSON.stringify({world:{modules:[{id:'gather-rules'}]}}));console.log(JSON.stringify({ok:true}));}
 else if(op==='validate') console.log(JSON.stringify({ok:true,demo:{steps:4}}));
+else if(op==='play') {for(const line of readFileSync(0,'utf8').split('\\n')) {if(line.startsWith('save ')) writeFileSync(line.slice(5),JSON.stringify(snapshot));else if(line.startsWith('load ')) {snapshot=JSON.parse(readFileSync(line.slice(5),'utf8'));console.log('已恢复：'+line.slice(5));}}}
 else {const i=process.argv.indexOf('--save');if(i>=0)writeFileSync(process.argv[i+1],JSON.stringify(snapshot));console.log(JSON.stringify({snapshot,results:[{ok:true}]}));}
 `);
     const smoke = run(root, process.execPath, ['scripts/smoke-built.mjs']);
