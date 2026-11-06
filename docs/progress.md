@@ -1,5 +1,7 @@
 # Implementation ledger — docs/superpowers/plans/2026-11-06-runtime.md
 
+本文件保留 v0.3 宿主批次的历史记录；当前 v0.4 世界创作与仓库接入进度见 `docs/authoring-progress.md`。
+
 ## Preflight decisions
 
 | Task/interface | Check | Ruling |

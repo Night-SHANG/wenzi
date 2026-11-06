@@ -1,7 +1,6 @@
 """Package already-verified source, JS and production dependencies. No rebuild or network."""
 from pathlib import Path
-from datetime import datetime
-from zoneinfo import ZoneInfo
+from datetime import datetime, timedelta, timezone
 import argparse
 import hashlib
 import json
@@ -9,10 +8,10 @@ import subprocess
 import zipfile
 
 root = Path(__file__).resolve().parents[1]
-parser = argparse.ArgumentParser()
-parser.add_argument('--out', default='artifacts/modular-text-world-0.3.0-alpha.1.zip')
-args = parser.parse_args()
 package = json.loads((root / 'package.json').read_text(encoding='utf-8'))
+parser = argparse.ArgumentParser()
+parser.add_argument('--out', default=f'artifacts/{package["name"]}-{package["version"]}.zip')
+args = parser.parse_args()
 lock = json.loads((root / 'package-lock.json').read_text(encoding='utf-8'))
 out = (root / args.out).resolve()
 out.parent.mkdir(parents=True, exist_ok=True)
@@ -24,7 +23,7 @@ for directory in ['src', 'dist', 'tests', 'docs', 'scripts', 'worlds', 'examples
     for file in sorted(path.rglob('*')):
         if file.is_file() and not file.is_symlink() and '__pycache__' not in file.parts:
             files[file.relative_to(root).as_posix()] = file.read_bytes()
-for name in ['package.json', 'package-lock.json', 'tsconfig.json', '.gitignore', 'README.md', 'THIRD_PARTY.md', 'run-demo.cmd', 'play-farm.cmd']:
+for name in ['package.json', 'package-lock.json', 'tsconfig.json', '.gitignore', 'AGENTS.md', 'README.md', 'THIRD_PARTY.md', 'run-demo.cmd', 'play-farm.cmd']:
     files[name] = (root / name).read_bytes()
 for name, info in lock['packages'].items():
     if not name.startswith('node_modules/') or info.get('dev'):
@@ -50,9 +49,9 @@ bundle = root / 'artifacts' / 'repository.bundle'
 subprocess.run(['git', 'bundle', 'create', str(bundle), '--all'], cwd=root, check=True, capture_output=True)
 files['repository.bundle'] = bundle.read_bytes()
 info = {'name': package['name'], 'version': package['version'], 'commit': commit,
-        'builtAtBeijing': datetime.now(ZoneInfo('Asia/Shanghai')).isoformat(timespec='seconds'),
+        'builtAtBeijing': datetime.now(timezone(timedelta(hours=8))).isoformat(timespec='seconds'),
         'runtime': 'Node.js >=24.12.0', 'sourceAndRuntimeIncluded': True,
-        'externalGitRepository': None}
+        'externalGitRepository': package.get('repository', {}).get('url') if isinstance(package.get('repository'), dict) else package.get('repository')}
 files['BUILD.json'] = (json.dumps(info, ensure_ascii=False, indent=2) + '\n').encode('utf-8')
 manifest = {name: hashlib.sha256(data).hexdigest() for name, data in sorted(files.items())}
 files['verification/manifest-sha256.json'] = (json.dumps(manifest, indent=2) + '\n').encode('utf-8')

@@ -1,0 +1,7 @@
+[
+  { "op": "test", "path": "/world/modules/0/id", "value": "capacity" },
+  { "op": "test", "path": "/world/modules/6/id", "value": "view" },
+  { "op": "replace", "path": "/world/title", "value": "作者改造的小田" },
+  { "op": "replace", "path": "/world/modules/0/module", "value": "capacity.physical" },
+  { "op": "replace", "path": "/world/modules/6/config/title", "value": "作者改造的小田" }
+]

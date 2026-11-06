@@ -1,5 +1,55 @@
 # 模块作者指南
 
+## 世界作者：从发现模块到运行作品
+
+构建后使用 `node dist/cli/index.js`，开发环境也可直接使用 `node src/cli/index.ts`。全部命令都沿用公开模块契约；新能力无需进入固定的玩法分类。
+
+| 操作 | 命令 | 结果 |
+| --- | --- | --- |
+| 查看已注册模块 | `modules --json` | 模块 manifest、配置/状态 schema、命令/查询 schema、事件、迁移支持 |
+| 查看一个模块 | `describe inventory.basic --json` | 指定模块的独立 JSON 描述；未注册时明确失败 |
+| 派生世界 | `fork farm --id author.my-farm --out my-farm.json` | 复制初始配置，保留模块实例、绑定和演示；不复制某次游玩的进度 |
+| 修改世界 | `patch my-farm.json --patch changes.json --out next.json` | 在副本上按顺序修改，再检查完整候选世界 |
+| 检查世界 | `validate next.json --run-demo --json` | 结构、装配、文字视图、可选演示和存档恢复的实际结果 |
+| 运行作品 | `play next.json` 或 `demo next.json` | 使用已有运行入口；无需另写一套游戏启动器 |
+
+`check` 与 `validate` 完全同义。`--title`、`--world-version` 可用于 fork；未指定时保留原值。所有需要模块的命令支持重复 `--plugin path/to/module.mjs`。目录读取不会运行模块的 initialState、命令、查询或事件钩子，但显式加载代码文件本身仍是可信本地代码执行。
+
+导出默认不覆盖已有路径。只有显式 `--overwrite` 才替换已有输出，也支持源路径与输出路径相同。结构、装配或补丁失败时不写文件；文件在同一目录暂存、同步后再发布。默认防覆盖使用文件硬链接发布，因此不支持硬链接的文件系统会明确报错并保留既有文件；显式覆盖使用重命名。没有声称跨文件系统事务或断电后的目录持久化保证。
+
+## 世界包和补丁
+
+WorldPackage 格式 1 只有 `format`、`world`、`demo` 三个顶层字段。`world` 和每个 demo 命令复用宿主结构校验；模组参数由各自 schema 和 validate 约束。未知顶层字段会拒绝，防止写错字段却被默默忽略。
+
+补丁文件是 RFC 6902 操作数组，路径从整个世界包开始，例如：
+
+```json
+[
+  { "op": "test", "path": "/world/modules/0/id", "value": "capacity" },
+  { "op": "replace", "path": "/world/modules/0/module", "value": "capacity.physical" }
+]
+```
+
+数组索引随前面的操作变化，因此建议先 test 实例 ID。对象中的 `/` 和 `~` 分别写作 `~1` 和 `~0`。数组末尾追加使用 `-`；move 的目标按删除源值后的文档解析。数据中的数字键仍可作为普通对象键。完整可运行示例在 `examples/farm-authoring.patch.json`。
+
+适配器允许六种标准操作，并保留主项目的 JSON 限制：不读取继承属性，不允许 `__proto__`、`constructor`、`prototype` 路径或数据键，数组索引不能超过 2147483647。其他普通 JSON 键（例如自身的 `hasOwnProperty`）可正常处理。标准操作执行交给 fast-json-patch；输入、补丁值及执行候选均与调用者数据分离。一个后续 test 失败不会留下前半段修改。
+
+默认检查不会运行 demo。带 `--run-demo` 时在临时世界执行每一步，检查最终文字视图，再验证快照恢复。失败报告包含阶段、错误码和可用的一基 demo 步骤；JSON Patch 操作错误使用从 0 开始的操作索引。检查不写存档，也不会把演示末尾状态变成作品初始状态。
+
+外部模块也能派生和检查：
+
+```bash
+node dist/cli/index.js fork examples/custom-world.json --id author.my-research --out my-research.json --plugin examples/custom-module.mjs
+node dist/cli/index.js validate my-research.json --run-demo --json --plugin examples/custom-module.mjs
+node dist/cli/index.js play my-research.json --plugin examples/custom-module.mjs
+```
+
+## 可复用的作者 API
+
+`ModuleRegistry.catalog()` 返回注册时捕获的模块描述副本。`parseWorldDefinition`、`parseCommand` 是宿主拥有的纯结构解析入口，不运行模块钩子。
+
+`src/authoring/packages.ts` 导出 `parseWorldPackage`、`cloneWorldPackage`、`inspectWorldPackage`；`src/authoring/patch.ts` 导出 `patchWorldPackage`。parse/clone/patch 负责结构与数据变换，语义检查由 inspect 使用正式宿主完成。文件导出适配器 `writeWorldPackage` 负责字节发布；调用方必须先通过语义检查。CLI 已执行这条完整链路。后续可视化创作工具复用这些接口。
+
 ## 选择最小的独立职责
 
 一个模块可以提供一项能力，也可以组合多个子模块。判断依据是能否独立替换或扩展，不要求把每个函数做成插件。任意新系统都适用这条原则，代码没有预先穷举玩法类型。

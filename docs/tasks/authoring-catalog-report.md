@@ -1,6 +1,6 @@
 # Authoring Task 1 — registry catalog and structural parsers
 
-Recorded: 2026-11-07 08:21 北京时间（UTC+08:00）。
+记录核对：2026-11-06 23:23 北京时间（UTC+08:00），root 通过可信 UTC 时钟换算后整合。
 
 ## Scope and implementation
 

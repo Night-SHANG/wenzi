@@ -1,14 +1,26 @@
 # 模块化文字世界
 
-**0.3.0-alpha.1 · 可运行开发工程**
+**0.4.0-alpha.1 · 可运行开发工程**
 
 这是独立的文字世界项目，与词条无限组合游戏分开。全部现有和未来系统、规则、内容、数据、表现与操作都按模块组织。仓库中的经营、战棋和叙事只是架构验证样例，不限制未来玩法。
 
-当前可运行模块宿主、16 个内置模块定义、6 个世界配置和一个从外部文件加载的作者模块。界面使用独立文字视图与命令行适配器；这不是最终游戏 UI，也不代表完整游戏已经开发完成。
+当前可运行模块宿主、16 个内置模块定义、6 个世界配置和一个从外部文件加载的作者模块。作者可发现模块、复制世界、用标准 JSON Patch 修改装配、校验后导出并运行。界面使用独立文字视图与命令行适配器；正式游戏 UI 和完整玩法仍在继续开发。
+
+源码仓库：[Night-SHANG/wenzi](https://github.com/Night-SHANG/wenzi)。当前 CI：[Modular runtime checks](https://github.com/Night-SHANG/wenzi/actions/workflows/preflight.yml)。仓库公开不代表主项目已选择开源授权协议；依赖许可见 `THIRD_PARTY.md`。
 
 ## 快速运行
 
-需要 **Node.js 24.12.0 或更新版本**。已验证环境为 Linux、Node.js 24.22.1。交付包带构建后的 JS 与运行依赖，不需要安装编译器即可运行：
+运行需要 **Node.js 24.12.0 或更新版本**。已验证本地环境为 Linux、Node.js 24.22.1。源码开发和完整验证另外需要 Git、Python 3.11 或更新版本。首次从仓库开始：
+
+```bash
+git clone https://github.com/Night-SHANG/wenzi.git
+cd wenzi
+npm ci
+npm run preflight
+npm run build
+```
+
+完成构建后，或使用包含 `dist` 与运行依赖的已构建工程包时：
 
 ```bash
 node dist/cli/index.js list
@@ -20,16 +32,35 @@ node dist/cli/index.js play farm
 
 Windows 可以在本目录打开终端执行相同命令，也提供 `run-demo.cmd` 和 `play-farm.cmd`。尚未在用户 Windows 真机验收。
 
-从纯源码开发时先安装固定依赖：
+重新验证与生成本地工程包：
 
 ```bash
-npm ci
 npm run preflight
 npm run build
-npm run demo
+node scripts/smoke-built.mjs
+python scripts/package.py
 ```
 
 Node 的类型擦除只负责运行 TypeScript；`npm run typecheck` 才检查类型。
+
+## 创建自己的世界
+
+下面流程使用同一宿主和普通 JSON 文件。路径包含空格时加引号：
+
+```bash
+node dist/cli/index.js modules
+node dist/cli/index.js describe inventory.basic
+node dist/cli/index.js fork farm --id author.my-farm --title 我的农田 --out my-farm.json
+node dist/cli/index.js patch my-farm.json --patch examples/farm-authoring.patch.json --out edited-farm.json --run-demo
+node dist/cli/index.js validate edited-farm.json --run-demo --json
+node dist/cli/index.js play edited-farm.json
+```
+
+示例补丁将容量策略换成重量、容积、长度约束，并分别修改世界标题和文字视图标题。两种标题属于不同配置，工具不会根据名字猜测它们必须联动。模块目录包含能力、依赖、配置和操作 schema；外部 `--plugin` 模块使用同一目录和创作流程。
+
+`validate`（别名 `check`）检查包结构、依赖装配、文字视图及存档恢复；只有带 `--run-demo` 时才执行并报告示范动作。`fork`、`patch` 在校验成功后才写输出，默认拒绝覆盖已有文件；明确需要原地修改时使用 `--overwrite`。检查产生的游戏状态不会写回世界的初始配置。
+
+JSON Patch 支持 `add/remove/replace/move/copy/test`。建议在按数组位置修改模块前，用 `test` 检查目标实例 ID；版本变化导致位置不符时整批修改会失败，原文件保留。详细数据语义、公开 API 和外部模组例子见 `docs/authoring.md`。
 
 ## 现在能验证什么
 
@@ -95,6 +126,7 @@ node dist/cli/index.js demo examples/custom-world.json --plugin examples/custom-
 | src/engine | 注册、依赖装配、单宿主事务、查询、事件队列、存档与迁移 |
 | src/modules | 可替换的规则与文字视图定义 |
 | src/adapters | 文字输出、文件和内存存储适配 |
+| src/authoring | 世界包解析、复制、标准补丁与独立运行检查 |
 | src/catalog.ts | 方便使用的内置目录，宿主不依赖它 |
 | worlds | 数据形式的世界装配与示范动作 |
 | examples | 外部作者模块及对应世界 |
@@ -113,6 +145,6 @@ node dist/cli/index.js demo examples/custom-world.json --plugin examples/custom-
 
 正式浏览器视觉界面、可视化模组编辑器、模块下载与分发、不可信代码隔离、服务器权限模型、跨服事务、联机/MMORPG、实时枪战、空间流式加载与大规模性能验证，都还没有实现。当前保存文件没有加密签名；它是本地作者数据格式，不是反作弊机制。技术验证不证明长期玩法乐趣或产品完成。
 
-成熟游戏的具体源码研究已保留，但本批没有整体导入 CDDA、Wesnoth、Widelands 或 micropolisJS。核心基础校验直接复用 Ajv、semver；游戏样例独立编写，用于证明未来接入规则时所需的模块边界。详见 [THIRD_PARTY.md](THIRD_PARTY.md)。
+成熟游戏的具体源码研究已保留，但尚未移植 CDDA、Wesnoth、Widelands 或 micropolisJS 的规则。核心基础校验直接复用 Ajv、semver，世界修改复用 fast-json-patch；游戏样例独立编写，用于验证承接规则所需的模块边界。详见 [THIRD_PARTY.md](THIRD_PARTY.md)。
 
-最新实际检查结果见交付包 `verification/`；设计与执行记录见 `docs/`。
+本地实际检查结果在 `artifacts/`，工程包包含 `verification/`。CI 配置覆盖 Linux 和 Windows，实际结果以对应提交的 Actions 状态为准；提交或本地检查通过不等于远端 CI 已通过。设计与执行记录见 `docs/`。
