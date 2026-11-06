@@ -1,6 +1,6 @@
 # v0.5 探索与生产进度
 
-记录：2026-11-07 00:30 北京时间（UTC+08:00）。代码版本：0.5.0-alpha.1。仓库：[Night-SHANG/wenzi](https://github.com/Night-SHANG/wenzi)。本批沿用已提交的独立文字世界底座。
+记录：2026-11-07 00:39 北京时间（UTC+08:00）。代码版本：0.5.0-alpha.1。仓库：[Night-SHANG/wenzi](https://github.com/Night-SHANG/wenzi)。本批沿用已提交的独立文字世界底座。
 
 ## 已实现
 
@@ -18,6 +18,7 @@
 | 制作范围测试与修复复审 | 2026-11-07 00:26 | 26/26；活动订单期间坏配方重装立即拒绝 |
 | 集成 Preflight | 2026-11-07 00:28 | 6/6，154 项测试通过、0 失败，严格类型检查通过，8 个世界实际运行恢复 |
 | 构建与编译后运行 | 2026-11-07 00:29 | TypeScript 构建通过；13 组真实构建运行通过 |
+| 最终整批独立审查 | 2026-11-07 00:36 | Task 3 与整批源码通过；无 Critical/Important 未决项，保留 3 项非阻塞 Minor |
 
 Preflight 指纹：`71a5cbf33ad4556f7c4d78cf3cf7d3e95e6da86c647ae01d1f7325d6a5cb7a3b`。
 
@@ -25,12 +26,14 @@ Preflight 指纹：`71a5cbf33ad4556f7c4d78cf3cf7d3e95e6da86c647ae01d1f7325d6a5cb
 
 运行检查覆盖所有基础世界、外部作者模块、改写农场、改写外部模块、改写探索世界，以及真实 CLI 中完成生产后保存、改变位置与库存、载入恢复并再次保存。阶段/连续两个探索示例均为 16 次动作、18 金币、50 秒，剩余 wood:1/stone:1/reed:2；不把自动检查等同于数值平衡或长期乐趣验证。
 
-范围审查和修复记录见 `docs/tasks/frontier-*-report.md`、`frontier-*-review.md`；完整整合证据见 [frontier-integration-report.md](tasks/frontier-integration-report.md)，执行决定见 [frontier-decisions.md](tasks/frontier-decisions.md)。最终整批审查与打包核验随后归入同目录。GitHub 对象导入后提交 ID 以 main 与 Notion 本批记录为准，保留 Source-Commit 映射。
+范围审查和修复记录见 `docs/tasks/frontier-*-report.md`、`frontier-*-review.md`；完整整合证据见 [frontier-integration-report.md](tasks/frontier-integration-report.md)，执行决定见 [frontier-decisions.md](tasks/frontier-decisions.md)，最终审查见 [frontier-final-review.md](tasks/frontier-final-review.md)。工程包在本报告提交后打包并独立解压核验；包的哈希与实际核验结果记录在 Notion 本批交付页，避免把尚未执行的交付步骤记成通过。GitHub 对象导入后提交 ID 以 main 与 Notion 本批记录为准，保留 Source-Commit 映射。
 
 ## CI 与后续
 
 上一版 `f86be17` 的 [run 42246209860](https://github.com/Night-SHANG/wenzi/actions/runs/42246209860) 已在 Linux 与 Windows 通过，完成时间为 2026-11-06 23:48 北京时间。本批本地验证不替代新提交的远端结果；提交后立即汇报，不持续轮询 Actions。
 
-仍未实现正式浏览器 UI、可视化编辑器、完整城镇成长/任务、探索战斗资源联动、即时射击、联机、容量验证或不可信脚本隔离。已有 CLI 严格参数解析阶段的 `--json` 错误格式小项仍保留为非阻塞问题，本批未修改 CLI。
+仍未实现正式浏览器 UI、可视化编辑器、完整城镇成长/任务、探索战斗资源联动、即时射击、联机、性能容量验证或不可信脚本隔离。
+
+最终审查保留三项非阻塞问题：外部采集模块返回无效地点字段时，视图可能把错误隐藏成“此处没有采集点”；含空白的模块实例 ID 虽然可由宿主调用，但现有 CLI 无法解析视图生成的对应动作提示；CLI 严格参数解析阶段的 `--json` 错误仍可能输出普通文字。当前内置世界使用不含空白的实例 ID，实际资源循环与存档检查均通过。上述问题不修改规则状态，但后续通用视图与 CLI 工作应处理，不能把它们描述为已解决。
 
 玩法使用与源码参考见 [frontier.md](frontier.md)。源游戏实现/数据尚未直接移植；本轮复用当前工程已经验证的系统，参照 Widelands 的声明式生产职责与失败语义，以独立模块接入。

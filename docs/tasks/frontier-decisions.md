@@ -1,6 +1,6 @@
 # v0.5 执行决定
 
-记录：2026-11-07 00:29 北京时间（UTC+08:00）。这些决定用于在已有授权下继续执行；设计规范与实际测试优先，尚未完成的能力不视为已交付。
+记录：2026-11-07 00:39 北京时间（UTC+08:00）。这些决定用于在已有授权下继续执行；设计规范与实际测试优先，尚未完成的能力不视为已交付。
 
 Ruling: Continue the selected wenzi project and make routine design/implementation decisions without another confirmation — current explicit continuation and prior repository authorization cover this batch — cost if wrong is reversible code/data rework.
 
@@ -29,3 +29,5 @@ Ruling: Update existing authoring discovery test to assert new capabilities inst
 Ruling: Task3's root integration is reviewed in the fresh whole-branch review together with the full spec, instead of adding a duplicate review seat for the same integration diff — the two disjoint module tasks already have independent scoped gates — reviewer must explicitly assess Task3 requirements.
 
 Ruling: Validate the current recipe catalog independently of the frozen paid job in every validation, without looking up the old recipe ID — bad new data must reject at reconfiguration, while removing or changing valid recipes must preserve existing orders — clarifies the spec's reference-validation intent and prevents newly trapped orders.
+
+Ruling: Accept the final review's three Minor presentation/CLI findings as disclosed alpha follow-ups — the reviewer reproduced no state mutation or failure in valid built-in worlds, and the generic CLI is outside this batch's edits — record their precise limits rather than imply arbitrary CLI IDs or malformed provider displays are fully handled; all source and archive delivery gates still apply.

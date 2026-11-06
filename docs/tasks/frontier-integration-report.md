@@ -1,6 +1,6 @@
 # v0.5 根整合与验证报告
 
-记录：2026-11-07 00:30 北京时间（UTC+08:00）。基线 f86be17cf09323923b0fe747e6d766a292ad360b，分支 feat/frontier-loop。
+记录：2026-11-07 00:39 北京时间（UTC+08:00）。基线 f86be17cf09323923b0fe747e6d766a292ad360b，分支 feat/frontier-loop。
 
 ## 实现
 
@@ -35,6 +35,8 @@
 
 ## 交付边界
 
-最终整批 fresh review 在根整合提交后进行，独立工程包验证在最终文档归档后进行；结果分别补存审查与交付记录。源码通过 GitHub 连接器导入精确 tree，使用预期 main SHA 与非强制更新；新 CI 不主动轮询。
+最终整批 fresh review 已在根整合提交 2e5e696 后完成，Task 3 规范、质量和整批源码均获 alpha 发布通过，无 Critical/Important 未决项。完整报告见 [frontier-final-review.md](frontier-final-review.md)。保留外部采集地点错误被过滤、含空白实例 ID 的提示无法被通用 CLI 解析，以及已有早期参数错误不遵循 --json 三项 Minor；均未导致状态修改或内置世界运行失败，不扩大本批去改通用 CLI。
+
+独立工程包验证在最终文档归档后执行，结果补存交付记录；此报告不预先宣称打包核验通过。源码通过 GitHub 连接器导入精确 tree，使用预期 main SHA 与非强制更新；新 CI 不主动轮询。
 
 这批没有发布 Stable/Release、移植完整第三方游戏、实现正式图形 UI 或验证 Windows 真机。上一版 Linux/Windows 托管 run 42246209860 成功只记为基线事实。未清理用户工件或 Git 分支。
