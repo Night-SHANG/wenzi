@@ -9,6 +9,18 @@ test('generic action text round-trips arbitrary IDs and remains compatible with 
   assert.deepEqual(parseActionCommand('workshop collect'), { target: 'workshop', action: 'collect', input: {} });
 });
 
+test('legacy commands accept brace-prefixed targets with and without JSON input', () => {
+  assert.deepEqual(parseActionCommand('{map move {"to":"forest"}'), { target: '{map', action: 'move', input: { to: 'forest' } });
+  assert.deepEqual(parseActionCommand('{map inspect'), { target: '{map', action: 'inspect', input: {} });
+  assert.deepEqual(parseActionCommand('{"target":"{map","action":"move","input":{"to":"forest"}}'), { target: '{map', action: 'move', input: { to: 'forest' } });
+});
+
+test('syntactically valid JSON commands never fall back after structural validation fails', () => {
+  for (const text of ['{"target": "a"}', '{"extra": true}', '{"target":"a","action":"x","input": []}', '{"target":"a","action":"x","input": null}']) {
+    assert.throws(() => parseActionCommand(text), { code: 'INVALID_COMMAND' }, text);
+  }
+});
+
 test('generic command text rejects unknown fields, nonobjects, invalid identifiers and unsafe JSON', () => {
   for (const text of ['', 'only-one-token', '{bad', '[]', 'null', '{"target":"a","action":"x","extra":1}',
     '{"target":"","action":"x"}', '{"target":"a","action":""}', '{"target":"a","action":"x","id":null}',

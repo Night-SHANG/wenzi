@@ -89,6 +89,35 @@ test('interactive JSON commands address whitespace and quoted IDs while malforme
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
 
+test('interactive legacy commands dispatch to brace-prefixed targets and reject malformed commands without mutation', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'text-world-brace-'));
+  try {
+    const pack = JSON.parse(await readFile('worlds/frontier.json', 'utf8'));
+    const id = '{map';
+    for (const instance of pack.world.modules) {
+      if (instance.id === 'location') instance.id = id;
+      for (const key of Object.keys(instance.bindings ?? {})) if (instance.bindings[key] === 'location') instance.bindings[key] = id;
+    }
+    for (const command of pack.demo) if (command.target === 'location') command.target = id;
+    const worldFile = join(dir, 'world.json'), save = join(dir, 'saved.json');
+    await writeFile(worldFile, JSON.stringify(pack));
+    const commands = [
+      'do {map move {"to":"forest"}',
+      'do {"target":"{map","action":"move","input":{"to":"town"}}',
+      'do {"target":"{map","action":"move","input":{"to":"forest"}',
+      'do {"target":"{map","action":"move","input":{"to":"forest"},"extra":true}',
+      'do {"target":"{map","action":"move","input":[]}',
+      `save ${save}`, 'exit', '',
+    ];
+    const r = cli(['play', worldFile], commands.join('\n'));
+    assert.equal(r.status, 0, r.stderr);
+    const saved = JSON.parse(await readFile(save, 'utf8'));
+    assert.equal(saved.revision, 2);
+    assert.equal(saved.modules[id].state.current, 'town');
+    assert.equal((r.stdout.match(/未完成：/g) ?? []).length, 3);
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
 test('early argument errors honor json mode and end-of-options remains positional', () => {
   for (const args of [['modules', '--json', '--not-a-flag'], ['fork', 'farm', '--json', '--id']]) {
     const r = cli(args);

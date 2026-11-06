@@ -11,7 +11,13 @@ function command(value: unknown): Command {
 /** Generic text transport; quoted/whitespace identifiers need no game-specific parser. */
 export function parseActionCommand(text: string): Command {
   const source = text.trim();
-  if (source.startsWith('{')) return command(JSON.parse(source));
+  if (source.startsWith('{')) {
+    let value: unknown;
+    try { value = JSON.parse(source); }
+    catch (error) { if (!(error instanceof SyntaxError)) throw error; }
+    // Only syntax failures may be legacy text (for example, a target named {map).
+    if (value !== undefined) return command(value);
+  }
   const match = source.match(/^(\S+)\s+(\S+)(?:\s+([\s\S]+))?$/);
   if (!match) throw new EngineError('INVALID_COMMAND', '用法：do {"target":"实例","action":"操作","input":{}}，或 do <实例> <操作> <JSON参数>');
   return command({ target: match[1]!, action: match[2]!, input: match[3] ? JSON.parse(match[3]) : {} });
