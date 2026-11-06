@@ -154,3 +154,32 @@ test('healing near the safe integer maximum clamps before addition', () => {
   const w = setup(d => { instance(d, 'rules').config.levels = [{ experience: 0, values: { maxHp: Number.MAX_SAFE_INTEGER } }]; instance(d, 'vitals').config.initialHp = Number.MAX_SAFE_INTEGER - 1; });
   assert.deepEqual(ok(w, 'vitals', 'heal', { amount: Number.MAX_SAFE_INTEGER }), { hp: Number.MAX_SAFE_INTEGER, maxHp: Number.MAX_SAFE_INTEGER });
 });
+
+test('Unicode code-point boundaries accept 65 and 128 astral stat characters', () => {
+  for (const size of [65, 128]) {
+    const key = '😀'.repeat(size), values = Object.fromEntries([['maxHp', 20], [key, 7]]);
+    assert.doesNotThrow(() => {
+      const w = setup(d => { instance(d, 'rules').config.levels = [{ experience: 0, values }]; });
+      assert.equal((xp(w).values as JsonObject)[key], 7);
+    });
+    const w = external({ values }); ok(w, 'progression', 'gain', { amount: 1 }); assert.equal((xp(w).values as JsonObject)[key], 7);
+  }
+});
+test('Unicode code-point boundaries accept restricted locations of 65 and 128 astral characters', () => {
+  for (const size of [65, 128]) {
+    const location = '😀'.repeat(size);
+    const w = setup(d => {
+      instance(d, 'location').config = { start: location, nodes: Object.fromEntries([[location, { name: '地点', description: '', exits: [] }]]) };
+      remedies(d).tonic!.locations = [location]; instance(d, 'vitals').config.initialHp = 10;
+    });
+    assert.deepEqual(ok(w, 'recovery', 'use', { remedy: 'tonic' }), { hp: 20, maxHp: 20 }); assert.equal(count(w), 1);
+  }
+});
+test('Unicode code-point boundaries reject external 129-character stat and current-location IDs', () => {
+  const key = '😀'.repeat(129);
+  fails(external({ values: Object.fromEntries([['maxHp', 20], [key, 7]]) }), 'progression', 'gain', { amount: 1 });
+  const provider: ModuleDefinition = { ...locationModule, manifest: { ...locationModule.manifest, id: 'test.long-location' }, queries: { ...locationModule.queries, current: { execute: () => ({ id: key }) } } };
+  const d = definition(); instance(d, 'location').module = 'test.long-location'; instance(d, 'vitals').config.initialHp = 10;
+  const w = createWorld(registry([provider]), d), before = w.snapshot(); const result = w.dispatch({ target: 'recovery', action: 'use', input: { remedy: 'tonic' } });
+  assert.equal(result.ok, false); if (!result.ok) assert.equal(result.error.code, 'INVALID_LOCATION'); assert.deepEqual(w.snapshot(), before);
+});

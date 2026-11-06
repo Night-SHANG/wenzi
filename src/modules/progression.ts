@@ -12,7 +12,7 @@ function resolve(ctx: ReadContext, experience = ctx.state<State>().experience): 
     || (result.nextExperience !== null && (!count(result.nextExperience) || result.nextExperience <= experience || result.level === 1000))
     || !object(result.values)) return ctx.fail('INVALID_PROGRESSION_RULE', '成长规则返回了无效经验或等级边界');
   for (const [key, value] of Object.entries(result.values)) {
-    if (key.length < 1 || key.length > 128 || !count(value)) ctx.fail('INVALID_PROGRESSION_RULE', '成长属性必须为有效ID与非负安全整数映射');
+    if (key.length < 1 || [...key].length > 128 || !count(value)) ctx.fail('INVALID_PROGRESSION_RULE', '成长属性必须为有效ID与非负安全整数映射');
   }
   return { experience, level: result.level, floorExperience: result.floorExperience, nextExperience: result.nextExperience, values: result.values };
 }

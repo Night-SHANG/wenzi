@@ -5,7 +5,7 @@ interface Remedy { name: string; item: string; healing: number; locations: strin
 interface Config { container: string; remedies: Record<string, Remedy> }
 function config(ctx: ReadContext): Config { return ctx.config as unknown as Config; }
 function object(value: unknown): value is JsonObject { return typeof value === 'object' && value !== null && !Array.isArray(value); }
-function id(value: unknown): value is string { return typeof value === 'string' && value.length > 0 && value.length <= 128; }
+function id(value: unknown): value is string { return typeof value === 'string' && value.length > 0 && [...value].length <= 128; }
 function health(ctx: ReadContext, value: unknown): { hp: number; maxHp: number } {
   if (!object(value) || typeof value.hp !== 'number' || !Number.isSafeInteger(value.hp) || value.hp < 0
     || typeof value.maxHp !== 'number' || !Number.isSafeInteger(value.maxHp) || value.maxHp <= 0 || value.hp > value.maxHp) return ctx.fail('INVALID_VITALS', '生命提供者返回了无效生命状态');
