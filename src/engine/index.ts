@@ -3,7 +3,7 @@ import type { ValidateFunction } from 'ajv';
 import { valid, validRange, satisfies } from 'semver';
 import type {
   Command, CommandDefinition, CommandResult, CommandSuccess, DomainEvent, ExecutionContext,
-  JsonObject, JsonSchema, JsonValue, ModuleDefinition, ModuleInstance, ModuleManifest,
+  JsonObject, JsonSchema, JsonValue, ModuleDefinition, ModuleDescriptor, ModuleInstance, ModuleManifest,
   PreviousState, QueryDefinition, ReadContext, ReconfigureOptions, SavedModule, StoredReceipt,
   WorldDefinition, WorldEvent, WorldSnapshot,
 } from '../contracts.ts';
@@ -57,6 +57,10 @@ function compile(schema: JsonSchema, location: string): ValidateFunction {
   }
   catch (error) { throw new EngineError('INVALID_SCHEMA', `${location}: ${errorOf(error).message}`); }
 }
+function captureSchema(schema: JsonSchema, location: string): JsonSchema {
+  try { return copyJson(schema); }
+  catch (error) { throw new EngineError('INVALID_SCHEMA', `${location}: ${errorOf(error).message}`); }
+}
 const validateManifest = compile(manifestSchema, 'manifest');
 const validateDefinition = compile(definitionSchema, 'world definition');
 const validateCommand = compile(commandSchema, 'command');
@@ -71,15 +75,32 @@ function assertName(value: unknown, location: string): asserts value is string {
   if (typeof value !== 'string' || !value.length || ['__proto__', 'constructor', 'prototype'].includes(value)) throw new EngineError('INVALID_MANIFEST', `Invalid ${location}`);
 }
 
+/** Validate JSON structure without assembling a world or running module hooks. */
+export function parseWorldDefinition(value: unknown): WorldDefinition {
+  const definition = copyJson(value);
+  check(validateDefinition, definition, 'INVALID_DEFINITION', 'World definition');
+  return definition as WorldDefinition;
+}
+
+/** Validate command structure without resolving or executing its target. */
+export function parseCommand(value: unknown): Command {
+  const command = copyJson(value);
+  check(validateCommand, command, 'INVALID_COMMAND', 'Command');
+  return command as Command;
+}
+
 interface PreparedAction<T> { handler: T; input?: ValidateFunction }
 interface Prepared {
   manifest: ModuleManifest;
   initialState: ModuleDefinition['initialState'];
   config?: ValidateFunction;
   state?: ValidateFunction;
+  configSchema?: JsonSchema;
+  stateSchema?: JsonSchema;
   commands: Map<string, PreparedAction<CommandDefinition['execute']>>;
   queries: Map<string, PreparedAction<QueryDefinition['execute']>>;
   commandSchemas: Map<string, JsonSchema>;
+  querySchemas: Map<string, JsonSchema>;
   events: Map<string, NonNullable<ModuleDefinition['events']>[string]>;
   validate?: ModuleDefinition['validate'];
   migrate?: ModuleDefinition['migrate'];
@@ -110,12 +131,20 @@ export class ModuleRegistry {
     if (typeof definition.initialState !== 'function') throw new EngineError('INVALID_MODULE', `Missing initialState: ${manifest.id}`);
     const prepared: Prepared = {
       manifest: freezeJson(manifest), initialState: definition.initialState,
-      commands: new Map(), queries: new Map(), commandSchemas: new Map(), events: new Map(),
-      ...(definition.configSchema !== undefined ? { config: compile(definition.configSchema, `${manifest.id} config`) } : {}),
-      ...(definition.stateSchema !== undefined ? { state: compile(definition.stateSchema, `${manifest.id} state`) } : {}),
+      commands: new Map(), queries: new Map(), commandSchemas: new Map(), querySchemas: new Map(), events: new Map(),
       ...(definition.validate ? { validate: definition.validate } : {}),
       ...(definition.migrate ? { migrate: definition.migrate } : {}),
     };
+    if (definition.configSchema !== undefined) {
+      const schema = captureSchema(definition.configSchema, `${manifest.id} config`);
+      prepared.config = compile(schema, `${manifest.id} config`);
+      prepared.configSchema = freezeJson(schema);
+    }
+    if (definition.stateSchema !== undefined) {
+      const schema = captureSchema(definition.stateSchema, `${manifest.id} state`);
+      prepared.state = compile(schema, `${manifest.id} state`);
+      prepared.stateSchema = freezeJson(schema);
+    }
     for (const [name, action] of Object.entries(definition.commands ?? {})) {
       assertName(name, 'command');
       if (typeof action.execute !== 'function') throw new EngineError('INVALID_MODULE', `Invalid command: ${name}`);
@@ -126,7 +155,9 @@ export class ModuleRegistry {
     for (const [name, action] of Object.entries(definition.queries ?? {})) {
       assertName(name, 'query');
       if (typeof action.execute !== 'function') throw new EngineError('INVALID_MODULE', `Invalid query: ${name}`);
-      prepared.queries.set(name, { handler: action.execute, input: compile(action.schema !== undefined ? action.schema : { type: 'object' }, `${manifest.id}.${name}`) });
+      const schema = action.schema !== undefined ? captureSchema(action.schema, `${manifest.id}.${name}`) : { type: 'object' };
+      prepared.queries.set(name, { handler: action.execute, input: compile(schema, `${manifest.id}.${name}`) });
+      prepared.querySchemas.set(name, freezeJson(schema));
     }
     for (const [type, handler] of Object.entries(definition.events ?? {})) {
       assertName(type, 'event type');
@@ -135,6 +166,20 @@ export class ModuleRegistry {
     }
     if (prepared.validate && typeof prepared.validate !== 'function' || prepared.migrate && typeof prepared.migrate !== 'function') throw new EngineError('INVALID_MODULE', 'Invalid lifecycle hook');
     modules.set(manifest.id, prepared);
+  }
+  /** Sorted, detached JSON metadata captured when each module was registered. */
+  catalog(): ModuleDescriptor[] {
+    return [...registries.get(this)!.entries()]
+      .sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0)
+      .map(([, module]) => copyJson({
+        manifest: module.manifest,
+        ...(module.configSchema !== undefined ? { configSchema: module.configSchema } : {}),
+        ...(module.stateSchema !== undefined ? { stateSchema: module.stateSchema } : {}),
+        commands: Object.fromEntries([...module.commandSchemas].map(([name, schema]) => [name, { schema }])),
+        queries: Object.fromEntries([...module.querySchemas].map(([name, schema]) => [name, { schema }])),
+        events: [...module.events.keys()].sort(),
+        supportsMigration: module.migrate !== undefined,
+      }));
   }
 }
 
@@ -145,8 +190,7 @@ interface Transaction extends Scope { events: DomainEvent[]; active: boolean; fa
 interface Loaded { states: States; revision: number; eventSequence: number; receipts: StoredReceipt[] }
 
 function assemble(registry: ModuleRegistry, requested: WorldDefinition): { definition: WorldDefinition; instances: Map<string, Instance> } {
-  const definition = copyJson(requested);
-  check(validateDefinition, definition, 'INVALID_DEFINITION', 'World definition');
+  const definition = parseWorldDefinition(requested);
   const instances = new Map<string, Instance>();
   for (const item of definition.modules) {
     if (instances.has(item.id)) throw new EngineError('DUPLICATE_INSTANCE', `Duplicate instance: ${item.id}`);
@@ -323,8 +367,7 @@ export class WorldRuntime {
     let transaction: Transaction | undefined;
     this.#busy = true;
     try {
-      const command = copyJson(request);
-      check(validateCommand, command, 'INVALID_COMMAND', 'Command');
+      const command = parseCommand(request);
       const fingerprint = canonical({ target: command.target, action: command.action, input: command.input ?? {} });
       if (command.id) {
         const receipt = this.#receipts.find(receipt => receipt.id === command.id);

@@ -76,6 +76,16 @@ export interface ModuleDefinition {
   /** Explicit migration is required when code identity/version/state format changes. */
   migrate?(previous: PreviousState, config: JsonObject): JsonValue;
 }
+/** Detached registration metadata for authoring tools; contains no executable hooks. */
+export interface ModuleDescriptor {
+  manifest: ModuleManifest;
+  configSchema?: JsonSchema;
+  stateSchema?: JsonSchema;
+  commands: Record<string, { schema: JsonSchema }>;
+  queries: Record<string, { schema: JsonSchema }>;
+  events: string[];
+  supportsMigration: boolean;
+}
 export interface Command {
   id?: string;
   target: string;
