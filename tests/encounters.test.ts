@@ -100,3 +100,48 @@ test('safe own-key and whitespace IDs win repeatedly; wins overflow rolls back p
 test('restored inconsistent battle states and cooldown ordering are invalid',()=>{
  const w=setup();ok(w,'encounters','start',{encounter:'wolf'});for(const patch of [{enemyHp:13},{enemyHp:0},{phase:'victory'},{phase:'defeat',enemyHp:0},{startedAt:1}]){const save=w.snapshot();Object.assign((save.modules.encounters!.state as any).battle,patch);assert.throws(()=>restoreWorld(registry(),save));}const s=w.snapshot();(s.modules.encounters!.state as any).cooldowns.wolf={startedAt:10,readyAt:9};assert.throws(()=>restoreWorld(registry(),s));
 });
+
+for (const length of [65, 128]) for (const use of ['encounter', 'location', 'loot'] as const) {
+  test(`astral ID boundary accepts ${length} code points as ${use}`, () => {
+    const id = '😀'.repeat(length), d = definition(), encounter = use === 'encounter' ? id : 'wolf';
+    const entry = wolf();
+    assert.equal([...id].length, length); assert.ok(id.length > 128);
+    if (use === 'location') {
+      entry.location = id;
+      instance(d, 'location').config = { start: id, nodes: { [id]: { name: 'Forest', description: '', exits: ['town'] }, town: { name: 'Town', description: '', exits: [id] } } };
+    }
+    if (use === 'loot') {
+      entry.loot = { [id]: 1 } as typeof entry.loot;
+      (instance(d, 'inventory').config.items as JsonObject)[id] = { name: 'Pelt', weight: 1, volume: 1, length: 1 };
+    }
+    instance(d, 'rules').config.encounters = { [encounter]: entry };
+    const baseline = structuredClone(d); baseline.modules = baseline.modules.filter(m => m.id !== 'encounters');
+    assert.deepEqual(createWorld(registry(), baseline).query('rules', 'get', { encounter }), { id: encounter, ...entry });
+    let w: World | undefined;
+    assert.doesNotThrow(() => { w = createWorld(registry(), d); });
+    assert.ok(w);
+    ok(w, 'encounters', 'start', { encounter });
+    fail(w, 'location', 'move', { to: 'town' });
+    for (let i = 0; i < 3; i++) ok(w, 'encounters', 'attack');
+    const restored = restoreWorld(registry(), w.snapshot());
+    ok(restored, 'encounters', 'claim');
+    assert.deepEqual(count(restored, use === 'loot' ? id : 'pelt'), { quantity: 1 });
+    assert.deepEqual(restored.query('encounters', 'records'), { wins: { [encounter]: 1 } });
+  });
+}
+
+test('astral ID boundary rejects 129-code-point external definitions without changing pending victory', () => {
+  const id = '😀'.repeat(129), entry = { id: 'wolf', ...wolf() };
+  assert.equal([...id].length, 129);
+  const w = setup(d => { instance(d, 'rules').module = 'test.external'; instance(d, 'rules').config = { get: entry, list: { encounters: [entry] } }; });
+  victory(w);
+  for (const invalid of [{ ...entry, id }, { ...entry, location: id }, { ...entry, loot: { [id]: 1 } }]) {
+    const before = w.snapshot(), d = w.definition;
+    instance(d, 'rules').config = { get: invalid, list: { encounters: [invalid] } };
+    assert.throws(() => reconfigureWorld(registry(), w, d), error => (error as { code: string }).code === 'INVALID_ENCOUNTER_RULE');
+    assert.deepEqual(w.snapshot(), before);
+    assert.equal(status(w).phase, 'victory');
+  }
+  ok(w, 'encounters', 'claim');
+  assert.deepEqual(count(w), { quantity: 1 });
+});

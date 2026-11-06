@@ -4,7 +4,7 @@ import { countSchema, emptySchema, idSchema, MAX_NUMBER, numberSchema, objectSch
 export interface EncounterDefinition { id: string; name: string; location: string; enemy: { maxHp: number; attack: number; defense: number }; loot: Record<string, number>; experience: number; cooldownSeconds: number }
 export const encounterSchema = objectSchema({ name: { type: 'string', minLength: 1 }, location: idSchema, enemy: objectSchema({ maxHp: positiveCountSchema, attack: positiveCountSchema, defense: countSchema }), loot: recordSchema(positiveCountSchema), experience: countSchema, cooldownSeconds: numberSchema });
 export function isObject(value: unknown): value is JsonObject { return typeof value === 'object' && value !== null && !Array.isArray(value); }
-export function isId(value: unknown): value is string { return typeof value === 'string' && value.length > 0 && value.length <= 128; }
+export function isId(value: unknown): value is string { return typeof value === 'string' && value.length > 0 && [...value].length <= 128; }
 export function isCount(value: unknown, positive = false): value is number { return typeof value === 'number' && Number.isSafeInteger(value) && value >= (positive ? 1 : 0); }
 export function isSeconds(value: unknown): value is number { return typeof value === 'number' && Number.isFinite(value) && value >= 0 && value <= MAX_NUMBER; }
 export function readEncounter(ctx: ReadContext, value: JsonValue, expectedId?: string): EncounterDefinition {
