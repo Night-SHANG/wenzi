@@ -118,3 +118,55 @@ test('unaccepted rows show current delivery shortages and full future victory re
  assert.deepEqual(row(w).remainingDelivery,{tool:1});assert.deepEqual(row(w).remainingVictories,{wolf:2});assert.equal(row(w).ready,false);
  ok(w,'inventory','add',{container:'bag',item:'tool',quantity:1});assert.deepEqual(row(w).remainingDelivery,{tool:0});assert.equal(row(w).ready,false);
 });
+
+test('supplementary-plane quest IDs at 65 and 128 code points support the local catalog lifecycle', () => {
+  for (const length of [65, 128]) {
+    const id = '😀'.repeat(length);
+    const w = setup(d => {
+      instance(d, 'rules').config.quests = { [id]: quest({ rewards: {}, experience: 0 }) };
+    });
+    assert.equal((w.query('rules', 'get', { quest: id }) as JsonObject).id, id);
+    assert.equal(row(w, id).status, 'available');
+    ok(w, 'quests', 'accept', { quest: id });
+    ok(w, 'quests', 'abandon', { quest: id });
+    ok(w, 'quests', 'accept', { quest: id });
+    const restored = restoreWorld(registry(), w.snapshot());
+    assert.equal(row(restored, id).status, 'ready');
+    ok(restored, 'quests', 'turnIn', { quest: id });
+    assert.equal(row(restored, id).completed, 1);
+    assert.equal(count(restored, 'tool'), 2);
+  }
+});
+
+test('supplementary-plane unrelated inventory IDs at 65 and 128 code points do not block the journal', () => {
+  for (const length of [65, 128]) {
+    const id = '😀'.repeat(length);
+    const w = setup(d => {
+      (instance(d, 'inventory').config.items as JsonObject)[id] = { name: '纪念物', weight: 1, volume: 1, length: 1 };
+      bag(d).items[id] = 1;
+    });
+    assert.equal(row(w).status, 'available');
+    ok(w, 'quests', 'accept', { quest: 'supply' });
+    ok(w, 'quests', 'turnIn', { quest: 'supply' });
+    assert.equal(row(w).completed, 1);
+    assert.equal(count(w, id), 1);
+  }
+});
+
+test('supplementary-plane external IDs and count keys over 128 code points still reject', () => {
+  const id = '😀'.repeat(129);
+  for (const definition of [
+    { id, ...quest() },
+    { id: 'supply', ...quest({ delivery: { [id]: 1 } }) },
+    { id: 'supply', ...quest({ rewards: { [id]: 1 } }) },
+    { id: 'supply', ...quest({ victories: { [id]: 1 } }) }
+  ]) {
+    assert.throws(() => external(d => {
+      instance(d, 'rules').config.list = { quests: [definition] };
+    }), (error: any) => error.code === 'INVALID_QUEST');
+  }
+  assert.throws(() => setup(d => {
+    withEncounters(d, { [id]: 1 });
+    catalog(d).supply = quest({ victories: { wolf: 1 } });
+  }), (error: any) => error.code === 'INVALID_ENCOUNTERS');
+});

@@ -16,7 +16,7 @@ const objectivesSchema = { anyOf: [{ properties: { delivery: { type: 'object', m
 const definitionSchema = { ...objectSchema(fields), ...objectivesSchema };
 export const frozenQuestSchema = { ...objectSchema({ id: idSchema, ...fields }), ...objectivesSchema };
 export function questObject(value: unknown): value is JsonObject { return typeof value === 'object' && value !== null && !Array.isArray(value); }
-export function questId(value: unknown): value is string { return typeof value === 'string' && value.length > 0 && value.length <= 128; }
+export function questId(value: unknown): value is string { return typeof value === 'string' && value.length > 0 && [...value].length <= 128; }
 function readIds(ctx: ReadContext, value: unknown): string[] {
   if (!Array.isArray(value) || value.some(id => !questId(id)) || new Set(value).size !== value.length) return ctx.fail('INVALID_QUEST', '任务引用必须为唯一 ID 数组');
   return value as string[];
