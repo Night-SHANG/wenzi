@@ -16,7 +16,7 @@ function rule(ctx: ReadContext, id: string): Rule {
   const result = ctx.query('gather-rule', 'get', { rule: id });
   if (typeof result !== 'object' || result === null || Array.isArray(result)
     || result.id !== id || typeof result.name !== 'string' || !result.name.length
-    || typeof result.item !== 'string' || !result.item.length || result.item.length > 128
+    || typeof result.item !== 'string' || !result.item.length || [...result.item].length > 128
     || typeof result.quantity !== 'number' || !Number.isSafeInteger(result.quantity) || result.quantity <= 0
     || typeof result.cooldownSeconds !== 'number' || !Number.isFinite(result.cooldownSeconds)
     || result.cooldownSeconds <= 0 || result.cooldownSeconds > MAX_NUMBER) {
@@ -32,7 +32,7 @@ function clock(ctx: ReadContext, state: State): number {
 }
 function currentLocation(ctx: ReadContext): string {
   const result = ctx.query('location', 'current');
-  if (typeof result !== 'object' || result === null || Array.isArray(result) || typeof result.id !== 'string' || !result.id.length) return ctx.fail('INVALID_LOCATION', '地点能力没有返回有效的当前位置');
+  if (typeof result !== 'object' || result === null || Array.isArray(result) || typeof result.id !== 'string' || !result.id.length || [...result.id].length > 128) return ctx.fail('INVALID_LOCATION', '地点能力没有返回有效的当前位置');
   return result.id;
 }
 function checkLocation(ctx: ReadContext, id: string): void {
@@ -40,7 +40,7 @@ function checkLocation(ctx: ReadContext, id: string): void {
   if (typeof result !== 'object' || result === null || Array.isArray(result)
     || result.id !== id || typeof result.name !== 'string' || !result.name.length
     || typeof result.description !== 'string' || !Array.isArray(result.exits)
-    || result.exits.some(exit => typeof exit !== 'string' || !exit.length || exit.length > 128)
+    || result.exits.some(exit => typeof exit !== 'string' || !exit.length || [...exit].length > 128)
     || new Set(result.exits).size !== result.exits.length) {
     ctx.fail('INVALID_LOCATION', `地点能力没有返回有效的地点描述：${id}`);
   }
@@ -61,10 +61,14 @@ function checkItem(ctx: ReadContext, item: string): void {
   }
 }
 export const gatheringModule: ModuleDefinition = {
-  manifest: { id: 'gathering.cooldown', title: '可再生采集', version: '1.0.0', apiVersion: 1, stateVersion: 1, provides: { gathering: '1.0.0' }, requires: { location: { version: '^1.0.0' }, 'gather-rule': { version: '^1.0.0' }, inventory: { version: '^1.0.0' }, time: { version: '^1.0.0' } } },
+  manifest: { id: 'gathering.cooldown', title: '可再生采集', version: '1.0.1', apiVersion: 1, stateVersion: 1, provides: { gathering: '1.0.0' }, requires: { location: { version: '^1.0.0' }, 'gather-rule': { version: '^1.0.0' }, inventory: { version: '^1.0.0' }, time: { version: '^1.0.0' } } },
   configSchema: objectSchema({ container: idSchema, sites: recordSchema(objectSchema({ location: idSchema, rule: idSchema })) }),
   stateSchema: objectSchema({ cooldowns: recordSchema(objectSchema({ gatheredAt: numberSchema, readyAt: numberSchema })) }),
   initialState: () => ({ cooldowns: {} }),
+  migrate(previous) {
+    if (previous.moduleId !== 'gathering.cooldown' || previous.version !== '1.0.0' || previous.stateVersion !== 1) throw new Error('不兼容的采集状态');
+    return previous.state;
+  },
   validate(ctx) {
     const config = ctx.config as unknown as Config, state = ctx.state<State>();
     checkContainer(ctx, config.container);

@@ -10,7 +10,7 @@ const countsSchema = { ...recordSchema(positiveCountSchema), minProperties: 1 };
 const jobSchema = objectSchema({ recipe: idSchema, name: { type: 'string', minLength: 1 }, batches: positiveCountSchema, inputs: countsSchema, outputs: countsSchema, startedAt: numberSchema, readyAt: numberSchema });
 function config(ctx: ReadContext): Config { return ctx.config as unknown as Config; }
 function object(value: unknown): value is JsonObject { return typeof value === 'object' && value !== null && !Array.isArray(value); }
-function id(value: unknown): value is string { return typeof value === 'string' && value.length > 0 && value.length <= 128; }
+function id(value: unknown): value is string { return typeof value === 'string' && value.length > 0 && [...value].length <= 128; }
 function counts(ctx: ReadContext, value: unknown): Record<string, number> {
   if (!object(value) || Object.keys(value).length === 0) return ctx.fail('INVALID_RECIPE', '配方投入与产出必须为非空物品计数映射');
   for (const [item, quantity] of Object.entries(value)) {
@@ -75,12 +75,16 @@ function validate(ctx: ReadContext): void {
   }
 }
 export const craftingModule: ModuleDefinition = {
-  manifest: { id: 'crafting.single', title: '单订单制作', version: '1.0.0', apiVersion: 1, stateVersion: 1, provides: { crafting: '1.0.0' }, requires: {
+  manifest: { id: 'crafting.single', title: '单订单制作', version: '1.0.1', apiVersion: 1, stateVersion: 1, provides: { crafting: '1.0.0' }, requires: {
     inventory: { version: '^1.0.0' }, time: { version: '^1.0.0' }, recipes: { version: '^1.0.0' }, location: { version: '^1.0.0', optional: true }
   } },
   configSchema: objectSchema({ container: idSchema, locations: { type: 'array', uniqueItems: true, items: idSchema } }, ['container']),
   stateSchema: objectSchema({ job: { anyOf: [{ type: 'null' }, jobSchema] } }),
   initialState: () => ({ job: null }), validate,
+  migrate(previous) {
+    if (previous.moduleId !== 'crafting.single' || previous.version !== '1.0.0' || previous.stateVersion !== 1) throw new Error('不兼容的制作状态');
+    return previous.state;
+  },
   commands: {
     start: { schema: objectSchema({ recipe: idSchema, batches: positiveCountSchema }, ['recipe']), execute(ctx, input) {
       if (ctx.state<State>().job) return ctx.fail('CRAFTING_BUSY', '已有未领取或未取消的订单');

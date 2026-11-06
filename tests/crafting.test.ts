@@ -7,6 +7,7 @@ import { inventoryModule } from '../src/modules/inventory.ts';
 import { timeModules } from '../src/modules/time.ts';
 import { recipesModule } from '../src/modules/recipes.ts';
 import { craftingModule } from '../src/modules/crafting.ts';
+import { locationModule } from '../src/modules/location.ts';
 
 const recipe = () => ({ name: '木板', inputs: { wood: 2 }, outputs: { plank: 2 }, durationSeconds: 20 });
 const externalRecipes: ModuleDefinition = {
@@ -144,6 +145,62 @@ test('nested advances use the actual start time and allow collect and replacemen
   ok(w, 'sequence', 'run', { operations: [advance(15), collect, start, advance(20), collect] }); assert.equal(count(w, 'plank'), 4); assert.equal(status(w).job, null);
 });
 function external(edit?: (d: WorldDefinition) => void) { return setup(d => { const provider = instance(d, 'recipes'); provider.module = 'test.recipes'; provider.config = { list: { recipes: [{ id: 'plank', ...recipe() }] }, get: { id: 'plank', ...recipe() } }; edit?.(d); }); }
+
+for (const length of [65, 128]) test(`frontier Unicode crafting accepts ${length} codepoint recipe item and location IDs from real providers`, () => {
+  const input = '🌲'.repeat(length), output = '🪵'.repeat(length), recipeId = '😀'.repeat(length), locationId = '🏠'.repeat(length);
+  const d = definition();
+  instance(d, 'inventory').config.items = Object.fromEntries([input, output].map(id => [id, { name: id, weight: 1, volume: 1, length: 1 }]));
+  bag(d).items = { [input]: 4 };
+  instance(d, 'recipes').config.recipes = { [recipeId]: { name: '木板', inputs: { [input]: 2 }, outputs: { [output]: 2 }, durationSeconds: 20 } };
+  d.modules.push({ id: 'location', module: 'location.nodes', config: { start: locationId, nodes: { [locationId]: { name: '工坊', description: '', exits: [] } } } });
+  instance(d, 'crafting').config.locations = [locationId];
+  const r = registry(); r.register(locationModule); const w = createWorld(r, d);
+  ok(w, 'crafting', 'start', { recipe: recipeId }); assert.equal(count(w, input), 2);
+  ok(w, 'clock', 'advance', { seconds: 20 }); ok(w, 'crafting', 'collect');
+  assert.equal(count(w, output), 2); assert.equal(status(w).job, null);
+});
+
+test('frontier Unicode crafting rejects external 129 codepoint recipe and item IDs', () => {
+  const tooLong = '😀'.repeat(129);
+  for (const patch of [{ id: tooLong }, { inputs: { [tooLong]: 1 } }, { outputs: { [tooLong]: 1 } }]) {
+    assert.throws(() => external(d => { instance(d, 'recipes').config.list = { recipes: [{ id: 'plank', ...recipe(), ...patch }] }; }), (error: any) => error.code === 'INVALID_RECIPE');
+    const w = external(d => { instance(d, 'recipes').config.get = { id: 'plank', ...recipe(), ...patch }; });
+    fails(w, 'crafting', 'start', { recipe: 'plank' }, 'INVALID_RECIPE'); assert.equal(count(w, 'wood'), 4);
+  }
+});
+
+test('frontier Unicode crafting rejects external 129 codepoint current location without consuming inputs', () => {
+  const provider: ModuleDefinition = { ...location, manifest: { ...location.manifest, id: 'test.unicode-location' }, queries: { ...location.queries, current: { execute: () => ({ id: '🏠'.repeat(129) }) } } };
+  const r = registry(); r.register(provider); const d = definition();
+  d.modules.push({ id: 'location', module: provider.manifest.id, config: {} }); instance(d, 'crafting').config.locations = ['town'];
+  const w = createWorld(r, d); fails(w, 'crafting', 'start', { recipe: 'plank' }, 'INVALID_LOCATION'); assert.equal(count(w, 'wood'), 4);
+});
+
+test('frontier Unicode crafting patch restores genuine paid 1.0.0 job with frozen outputs and remaining time', () => {
+  const legacy = { ...craftingModule, manifest: { ...craftingModule.manifest, version: '1.0.0' } };
+  const oldRegistry = new ModuleRegistry([...capacityModules, inventoryModule, ...timeModules, recipesModule, legacy]);
+  const w = createWorld(oldRegistry, definition()); ok(w, 'crafting', 'start', { recipe: 'plank' }); ok(w, 'clock', 'advance', { seconds: 5 });
+  assert.equal(count(w, 'wood'), 2); const saved = w.snapshot(), restored = restoreWorld(registry(), saved);
+  assert.equal(restored.snapshot().modules.crafting!.definitionVersion, '1.0.1');
+  assert.deepEqual(restored.read('crafting'), saved.modules.crafting!.state);
+  assert.equal(status(restored).remainingSeconds, 15); assert.equal(count(restored, 'wood'), 2);
+  fails(restored, 'crafting', 'collect', {}, 'CRAFTING_NOT_READY');
+  ok(restored, 'clock', 'advance', { seconds: 15 }); ok(restored, 'crafting', 'collect');
+  assert.equal(count(restored, 'plank'), 2); fails(restored, 'crafting', 'collect');
+});
+
+test('frontier Unicode crafting patch rejects unsupported migration origins and malformed legacy paid jobs', () => {
+  const legacy = { ...craftingModule, manifest: { ...craftingModule.manifest, version: '1.0.0' } };
+  const oldRegistry = new ModuleRegistry([...capacityModules, inventoryModule, ...timeModules, recipesModule, legacy]);
+  const w = createWorld(oldRegistry, definition()); ok(w, 'crafting', 'start', { recipe: 'plank' });
+  for (const patch of [{ definitionId: 'other.crafting' }, { definitionVersion: '0.9.0' }, { definitionVersion: '1.0.2' }, { stateVersion: 2 }]) {
+    const saved = w.snapshot(); Object.assign(saved.modules.crafting!, patch); assert.throws(() => restoreWorld(registry(), saved));
+  }
+  for (const patch of [{ readyAt: 0 }, { batches: 0 }, { outputs: { missing: 1 } }]) {
+    const saved = w.snapshot(); Object.assign((saved.modules.crafting!.state as JsonObject).job as JsonObject, patch);
+    assert.throws(() => restoreWorld(registry(), saved));
+  }
+});
 test('external recipe capability supports public contracts and rejects malformed lists at assembly', () => {
   const w = external(); ok(w, 'crafting', 'start', { recipe: 'plank' }); ok(w, 'clock', 'advance', { seconds: 20 }); ok(w, 'crafting', 'collect'); assert.equal(count(w, 'plank'), 2);
   for (const list of [null, {}, { recipes: {} }, { recipes: [null] }, { recipes: [{ id: 'plank', ...recipe(), inputs: [] }] }, { recipes: [{ id: 'plank', ...recipe(), outputs: { missing: 1 } }] }]) assert.throws(() => external(d => { instance(d, 'recipes').config.list = list; }));
