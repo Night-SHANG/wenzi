@@ -1,0 +1,19 @@
+{
+  "name": "modular-text-world",
+  "version": "0.3.0-alpha.1",
+  "private": true,
+  "description": "Independent modular text-world runtime and authoring contracts",
+  "type": "module",
+  "license": "UNLICENSED",
+  "engines": { "node": ">=24.12.0" },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "node --test tests/*.test.ts",
+    "preflight": "node scripts/preflight.mjs",
+    "build": "tsc",
+    "demo": "node src/cli/index.ts demo farm",
+    "play": "node src/cli/index.ts play farm"
+  },
+  "dependencies": { "ajv": "8.17.1", "semver": "7.8.5" },
+  "devDependencies": { "@types/node": "24.0.0", "@types/semver": "7.7.0", "typescript": "5.9.3" }
+}
