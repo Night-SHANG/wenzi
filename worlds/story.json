@@ -1,0 +1,81 @@
+{
+  "format": 1,
+  "world": {
+    "id": "example.story",
+    "title": "雾中来信",
+    "version": "1.0.0",
+    "entryView": {
+      "instance": "view",
+      "query": "render"
+    },
+    "modules": [
+      {
+        "id": "story",
+        "module": "narrative.branching",
+        "config": {
+          "start": "shore",
+          "nodes": {
+            "shore": {
+              "text": "雾停在河面上。你收到一封没有署名的信，信里只有一句话：桥那边，有人记得你的名字。",
+              "choices": [
+                {
+                  "id": "cross",
+                  "label": "踏上木桥",
+                  "next": "bridge"
+                },
+                {
+                  "id": "wait",
+                  "label": "在岸边等待",
+                  "next": "shore"
+                }
+              ]
+            },
+            "bridge": {
+              "text": "桥中央的灯仍亮着。灯下留着一枚旧钥匙，钥匙上刻着档案馆的门牌。",
+              "choices": [
+                {
+                  "id": "follow",
+                  "label": "带着钥匙前往档案馆",
+                  "next": "archive"
+                },
+                {
+                  "id": "return",
+                  "label": "返回河岸",
+                  "next": "shore"
+                }
+              ]
+            },
+            "archive": {
+              "text": "门开了。书架上有一本只写了标题的书，标题正是你的名字。这个世界的下一页，等待新的模块写入。",
+              "choices": []
+            }
+          }
+        }
+      },
+      {
+        "id": "view",
+        "module": "view.narrative.text",
+        "config": {},
+        "bindings": {
+          "narrative": "story"
+        }
+      }
+    ]
+  },
+  "demo": [
+    {
+      "target": "story",
+      "action": "choose",
+      "input": {
+        "choice": "cross"
+      }
+    },
+    {
+      "target": "story",
+      "action": "choose",
+      "input": {
+        "choice": "follow"
+      }
+    }
+  ]
+}

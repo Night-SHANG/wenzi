@@ -1,0 +1,108 @@
+{
+  "format": 1,
+  "world": {
+    "id": "example.tactics",
+    "title": "桥头对峙",
+    "version": "1.0.0",
+    "entryView": {
+      "instance": "view",
+      "query": "render"
+    },
+    "modules": [
+      {
+        "id": "random",
+        "module": "random.seeded",
+        "config": {
+          "seed": 123
+        }
+      },
+      {
+        "id": "battle",
+        "module": "tactics.grid",
+        "config": {
+          "width": 5,
+          "height": 3,
+          "movePoints": 2,
+          "units": [
+            {
+              "id": "traveler",
+              "name": "旅人",
+              "side": "player",
+              "x": 0,
+              "y": 1,
+              "hp": 12,
+              "damage": 5,
+              "hitChance": 1
+            },
+            {
+              "id": "guard",
+              "name": "守卫",
+              "side": "enemy",
+              "x": 2,
+              "y": 1,
+              "hp": 10,
+              "damage": 3,
+              "hitChance": 1
+            }
+          ]
+        },
+        "bindings": {
+          "random": "random"
+        }
+      },
+      {
+        "id": "view",
+        "module": "view.tactics.text",
+        "config": {},
+        "bindings": {
+          "tactics": "battle"
+        }
+      }
+    ]
+  },
+  "demo": [
+    {
+      "target": "battle",
+      "action": "move",
+      "input": {
+        "unit": "traveler",
+        "x": 1,
+        "y": 1
+      }
+    },
+    {
+      "target": "battle",
+      "action": "attack",
+      "input": {
+        "unit": "traveler",
+        "target": "guard"
+      }
+    },
+    {
+      "target": "battle",
+      "action": "endTurn",
+      "input": {}
+    },
+    {
+      "target": "battle",
+      "action": "attack",
+      "input": {
+        "unit": "guard",
+        "target": "traveler"
+      }
+    },
+    {
+      "target": "battle",
+      "action": "endTurn",
+      "input": {}
+    },
+    {
+      "target": "battle",
+      "action": "attack",
+      "input": {
+        "unit": "traveler",
+        "target": "guard"
+      }
+    }
+  ]
+}

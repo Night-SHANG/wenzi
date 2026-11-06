@@ -25,3 +25,16 @@ Ruling: This is the reusable technical foundation and author CLI. Formal visual 
 - Contracts and task briefs written.
 - Host, systems, adventure: dispatched next; no passing test claims yet.
 - Dependencies: installation in progress.
+
+## 2026-11-06 22:42 北京时间（UTC+08:00）
+
+- Tasks 1–3 implemented; first independent reviews found queued planting time and contradictory receipt/cursor validation.
+- Task 1 fix round 1/5: H1/H2 addressed, host 25/25 tests; scoped review approved.
+- Task 2 fix round 1/5: retroactive growth addressed; farm 22/22 tests; scoped review approved.
+- Task 3: spec and quality approved, 9/9 tests.
+- Root Preflight: 65/65 behavior tests, 6/6 checks, all six world assemblies execute and restore.
+- Strict typecheck passed. Compiled JS build succeeded. Built-runtime smoke is running next.
+- Source remains on isolated feat/modular-runtime branch; no remote repository, Actions run or release.
+- Delivery packaging and whole-branch review remain; no final-completion claim yet.
+
+Ruling: Planting stateVersion becomes 2 to preserve temporal baselines. Empty v1 state migrates; occupied v1 state without history rejects. No v1 release/user saves exist; inventing a baseline would silently change history.

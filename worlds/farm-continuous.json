@@ -1,0 +1,162 @@
+{
+  "format": 1,
+  "world": {
+    "id": "example.farm",
+    "title": "河岸小田 · 连续时间",
+    "version": "1.0.0",
+    "description": "经营链与可替换规则的架构验证世界。",
+    "entryView": {
+      "instance": "view",
+      "query": "render"
+    },
+    "modules": [
+      {
+        "id": "capacity",
+        "module": "capacity.slots",
+        "config": {}
+      },
+      {
+        "id": "inventory",
+        "module": "inventory.basic",
+        "config": {
+          "items": {
+            "seed": {
+              "name": "芜菁种子",
+              "weight": 1,
+              "volume": 1,
+              "length": 2
+            },
+            "turnip": {
+              "name": "芜菁",
+              "weight": 150,
+              "volume": 150,
+              "length": 100
+            }
+          },
+          "containers": {
+            "player": {
+              "limits": {
+                "slots": 8,
+                "maxWeight": 6000,
+                "maxVolume": 8000,
+                "maxLength": 500
+              },
+              "items": {
+                "seed": 3,
+                "turnip": 0
+              }
+            },
+            "warehouse": {
+              "limits": {
+                "slots": 30,
+                "maxWeight": 100000,
+                "maxVolume": 100000,
+                "maxLength": 2000
+              },
+              "items": {
+                "seed": 0,
+                "turnip": 0
+              }
+            }
+          }
+        },
+        "bindings": {
+          "capacity": "capacity"
+        }
+      },
+      {
+        "id": "clock",
+        "module": "time.continuous",
+        "config": {}
+      },
+      {
+        "id": "growth",
+        "module": "growth.linear",
+        "config": {
+          "multiplier": 1
+        }
+      },
+      {
+        "id": "crops",
+        "module": "planting.basic",
+        "config": {
+          "container": "player",
+          "crops": {
+            "turnip": {
+              "name": "芜菁",
+              "seedItem": "seed",
+              "harvestItem": "turnip",
+              "durationSeconds": 172800,
+              "yield": 3
+            }
+          }
+        },
+        "bindings": {
+          "inventory": "inventory",
+          "time": "clock",
+          "growth-rule": "growth"
+        }
+      },
+      {
+        "id": "market",
+        "module": "market.fixed",
+        "config": {
+          "container": "player",
+          "prices": {
+            "turnip": 5
+          },
+          "initialCoins": 0
+        },
+        "bindings": {
+          "inventory": "inventory"
+        }
+      },
+      {
+        "id": "view",
+        "module": "view.farm.text",
+        "config": {
+          "title": "河岸小田 · 连续时间",
+          "container": "player"
+        },
+        "bindings": {
+          "inventory": "inventory",
+          "time": "clock",
+          "planting": "crops",
+          "market": "market"
+        }
+      }
+    ]
+  },
+  "demo": [
+    {
+      "target": "crops",
+      "action": "plant",
+      "input": {
+        "plot": "field-1",
+        "crop": "turnip"
+      }
+    },
+    {
+      "target": "clock",
+      "action": "advance",
+      "input": {
+        "seconds": 172800
+      }
+    },
+    {
+      "target": "crops",
+      "action": "harvest",
+      "input": {
+        "plot": "field-1"
+      }
+    },
+    {
+      "target": "market",
+      "action": "sell",
+      "input": {
+        "item": "turnip",
+        "quantity": 2
+      }
+    }
+  ]
+}

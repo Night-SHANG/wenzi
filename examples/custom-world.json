@@ -1,0 +1,37 @@
+{
+  "format": 1,
+  "world": {
+    "id": "author.research",
+    "title": "作者模块接入示例",
+    "version": "1.0.0",
+    "entryView": {
+      "instance": "research",
+      "query": "render"
+    },
+    "modules": [
+      {
+        "id": "research",
+        "module": "author.research.counter",
+        "config": {
+          "title": "未知领域研究"
+        }
+      }
+    ]
+  },
+  "demo": [
+    {
+      "target": "research",
+      "action": "study",
+      "input": {
+        "amount": 3
+      }
+    },
+    {
+      "target": "research",
+      "action": "study",
+      "input": {
+        "amount": 4
+      }
+    }
+  ]
+}
