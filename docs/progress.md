@@ -22,9 +22,11 @@ Ruling: This is the reusable technical foundation and author CLI. Formal visual 
 
 ## Status
 
-- Contracts and task briefs written.
-- Host, systems, adventure: dispatched next; no passing test claims yet.
-- Dependencies: installation in progress.
+- Tasks 1–4 implemented: reusable host, modular systems, independent adventure rules, author CLI and delivery tooling.
+- Contracts are an alpha API. The project contains 16 built-in module definitions, six world configurations and one external-author module example.
+- Full Preflight passed after the release-evidence correction. Host, module and final integration reviews approved.
+- Compiled JavaScript passed all six world runs with save/restore and the external-author module run. Final archive packaging and independent unpacked verification are the delivery steps.
+- The isolated local repository is on `feat/modular-runtime`; no external repository, hosted CI run or public release exists.
 
 ## 2026-11-06 22:42 北京时间（UTC+08:00）
 
@@ -38,3 +40,12 @@ Ruling: This is the reusable technical foundation and author CLI. Formal visual 
 - Delivery packaging and whole-branch review remain; no final-completion claim yet.
 
 Ruling: Planting stateVersion becomes 2 to preserve temporal baselines. Empty v1 state migrates; occupied v1 state without history rejects. No v1 release/user saves exist; inventing a baseline would silently change history.
+
+## 2026-11-06 22:58 北京时间（UTC+08:00）
+
+- Final release review F1 corrected: a verifier starts by invalidating old success evidence, persists failed results, and fingerprints the verified inputs. Packaging rejects failed, legacy and stale evidence.
+- Full Preflight at 22:54 北京时间 passed 6/6 checks, including strict typechecking, all 68 behavior tests (65 application tests and three release-evidence regressions), and execution/restoration of all six world configurations.
+- A fresh TypeScript compilation exited 0. Built-runtime verification at 22:57 北京时间 passed six world demos, actual file save/restore from a different working directory, and an external module loaded only through the public interface.
+- Scoped final re-review approved F1 with no remaining actionable finding; reviewer independently reran all three release-evidence regressions successfully.
+- Delivery contains source, compiled JavaScript, production dependencies, author examples, review reports, fingerprinted verification reports, a per-file hash manifest and a Git bundle. Archive verification is recorded separately after packaging; this source ledger does not claim an archive check before it is performed.
+- Completed scope is a single-host, trusted-local module runtime and authoring CLI. Browser UI, real-time shooting/input, multiplayer, a sustained full game, mature-game source ports and real Windows/hosted-CI verification remain future work.

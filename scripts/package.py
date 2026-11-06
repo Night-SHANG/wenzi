@@ -34,8 +34,16 @@ for name, info in lock['packages'].items():
             files[file.relative_to(root).as_posix()] = file.read_bytes()
 for report in ['preflight.json', 'built-smoke.json']:
     data = (root / 'artifacts' / report).read_bytes()
-    if not json.loads(data)['ok']:
+    evidence = json.loads(data)
+    if evidence.get('ok') is not True:
         raise SystemExit(f'Cannot package failed verification: {report}')
+    scope = 'preflight' if report == 'preflight.json' else 'built-smoke'
+    current = subprocess.run(['node', str(root / 'scripts' / 'release-fingerprint.mjs'), scope, str(root)],
+                             cwd=root, capture_output=True, text=True)
+    if current.returncode:
+        raise SystemExit(f'Cannot fingerprint verification inputs: {current.stderr.strip()}')
+    if evidence.get('fingerprint') != json.loads(current.stdout):
+        raise SystemExit(f'Cannot package stale verification: {report}; rerun verification for current inputs')
     files['verification/' + report] = data
 commit = subprocess.run(['git', 'rev-parse', 'HEAD'], cwd=root, check=True, capture_output=True, text=True).stdout.strip()
 bundle = root / 'artifacts' / 'repository.bundle'
