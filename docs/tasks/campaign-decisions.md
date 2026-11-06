@@ -30,7 +30,7 @@ Ruling: Existing tested-publication authorization applies; expected main e3b09d8
 | 3 | state union, prerequisites, repeated quest baselines, frozen terms | Current catalogs validated independently; removed frozen encounters can be abandoned. |
 | 4 | JSON command transport, migration, two clocks, numeric final outcome | General parser keeps legacy syntax; composed views consume real providers; no host edits. |
 
-## Tasks
+## Initial task dispatch (later completions recorded below)
 
 - Task1 progression/vitals/recovery: queued, base initial-spec commit.
 - Task2 encounters/combat: queued, base initial-spec commit.
@@ -54,3 +54,25 @@ Task4: command/earlyJSON/site tests observed3fail then16/16; later18-test execut
 
 Extra bounded frontier interoperability task complete1f61e15,14/14focused with distinct migration-requiredRED. Main source frozen.
 Integrated gates: 2026-11-07 01:29Beijing Preflight6/6,251/251 tests, strict typecheck and10actualworlds/restores; TypeScriptbuildPASS. No fullgate rerun required absent relevant-input change.
+
+Runtime gate 2026-11-07 01:29Beijing:18/18actualcompiledgroupsPASS; fingerprintd035e569146b50d84cfcbe89e8e30d1dfc48c4a7df462ee74e073f06fbee7289.
+Finalreview progress minor: README headline stillv0.5 whilebody/packagev0.6; corrected headline only in root's pending documentation update. No source/test/gate input changed.
+
+Final whole-branch review4a0d753:0Critical/0Important;Task4specchangesrequestedfor1P3legacycompatibilitygap. Legal{maptargetwasmisclassifiedasfullJSON. One bounded finalfixwave dispatched tofix_campaign_final_v06 with completefindings;scopeactionsparser+coveringCLI/commandtests only. READMEheadlineclosed. Extra frontierUnicode/migrationcorrection independentlyPASS. Reviewer readactual251/6/18evidenceandrecomputedbothfingerprintswithoutunchangedtests.
+Ruling: Correct the proven brace-prefixed legacycommand regression despite itsP3severity becausepreservinglegacyformisexplicit;oneboundedfixwaveandonefixdiffreview only. Newsourcebytesrequirefreshintegratedfingerprintedgates;prior251/6/18remains historicalevidence,notfinalfixevidence.
+
+## Final reviewer declined judgments — controller disposition
+
+- BrowserUI,MMORPG/networkauthority,hostilescriptisolation,richcontent/longterm balance: agreeoutsidev0.6;retainexplicitproductlimitsandfuturecontracts,notclaimimplementation.
+- Trustedproviderplausiblylyingaboutsuccessfulmutation: agreepubliccontractvalidationiscurrentboundary;do notclaimuntrustedsecurity.
+- Activebattlelocationversusauthor-reconfiguredcurrentlocation: acceptpreviousbinding/referencepolicy;ordinarymovementvetoandfrozenreferencevalidityremainrequired,authorreconfigurationisnotserverpermissioncontrol.
+- Unconsumedforeignfields/fullschema-reimplementationinsideview: agreeonlyconsumedfieldsarevalidated;providersandhostretainownvalidation.
+- Denseformatting: retainasreadabilitycostwithoutbroadfinalrefactor;noadditionalfunctionaldefectdemonstrated.
+- Independentupstreamlegal/provenancecertification: outsidecode-reviewclaim;rootpreviouslyfetchedpinnedprimaryfiles/licensesandrecordsreference-onlyadaptation,notcopiedsource.
+- Archivehashes/unpackedruntime/Gitbundle/publicmain/Notion/newCI:correctlyoutsidecompletedreview;rootmustfinishactualdeliverygates,noinferencefromoldversions.NewCIwillremainunqueriedperpreference.
+
+Finalsinglefixwave committed1fc60e2 (source3filesonly): JSONSyntaxErrorpermitslegacygrammar, successfulJSONthenCommandvalidationcannotfallback. FocusedRED2assertionfail/1pass;coveringGREEN12/12. RootrefreshedintegratedPreflightbecausefingerprintinputs changed;one scopedreviewrequestedfor4a0d753..1fc60e2 only.
+
+Final singlewave scopedrereview4a0d753..1fc60e2:priorP3ADDRESSED,no newbreakage;Task4specPASS,qualityPASS,wholebranchsourcegatePASS. FinalsourcePreflight254/254,6/6 at2026-11-07 01:41Beijing withfingerprinte8ff94ac8338187f7415592f68e30d4074aa44d87ac547a2adb5abd1cf3f430f. FinalTypeScriptbuildPASS;realcompiledsmokerunning. No remainingreviewfindings;no secondfixwave.
+
+Finalruntimegate:2026-11-07 01:41Beijing18/18PASSwithfingerprintdc24a21ce7de040b3b25f0c685a30b67dde325e481338fa166d54281d680194b. Code/testinputs are frozen at1fc60e2;documentationarchivalfollowsonly. Source review andallcurrentinputgatescomplete. Archiveandpublicationgatesremainpendingafterthisrecordcommit.

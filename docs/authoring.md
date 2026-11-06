@@ -58,7 +58,7 @@ node dist/cli/index.js play my-research.json --plugin examples/custom-module.mjs
 do {"target":"地图 \"节点\"","action":"move","input":{"to":"forest"}}
 ```
 
-既有 `do location move {"to":"forest"}` 简写继续可用。通用文本适配器 `src/presentation/actions.ts` 复用宿主 `parseCommand`，只负责文本编码与解析，不执行玩法；`formatActionCommand` 和 `boundActionCommand` 生成与解析器一致的提示。JSON 形式拒绝未知命令字段、非对象 input 和不合法 JSON，未执行的输入不会修改世界。`--json` 的早期参数解析错误也采用结构化输出，`--` 之后的同名文字仍按位置参数处理。
+既有 `do location move {"to":"forest"}` 简写继续可用，包括以 `{` 开头的合法实例名。完整有效 JSON 优先采用 JSON 形式；仅 JSON 语法解析失败时才尝试旧简写，已解析但结构不合法的命令不会回退。通用文本适配器 `src/presentation/actions.ts` 复用宿主 `parseCommand`，只负责文本编码与解析，不执行玩法；`formatActionCommand` 和 `boundActionCommand` 生成与解析器一致的提示。JSON 形式拒绝未知命令字段、非对象 input 和不合法 JSON，未执行的输入不会修改世界。`--json` 的早期参数解析错误也采用结构化输出，`--` 之后的同名文字仍按位置参数处理。
 
 `view.campaign.text` 通过明确绑定的 `text-view` 能力组合 `view.frontier.text`，再展示成长、生命、遭遇和任务。组合者无需读取另一个视图的私有实现或改动规则状态。由于两个实例均提供 text-view，必须明确指定基础视图绑定，避免歧义或自我调用。
 

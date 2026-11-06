@@ -21,10 +21,22 @@ JSON command transport delegates to the existing public parseCommand; both new a
 
 The three independent module reviews caught schema/manual Unicode inconsistencies. Their original implementers fixed and tested their own files; scoped rereviews accepted all three fixes. The controller also identified matching published gathering/crafting defects and assigned one bounded extra implementer, preserving state schema/capability versions while bumping implementation versions and adding explicit migrations. Its14 focused regressions include genuine paidjob/cooldown state and independently observed MIGRATION_REQUIRED before migration code. Root's two view checks were fixed in Task4 before its independent whole-branch gate. See the corresponding implementation and review reports.
 
-## Remaining gates
+## Initial integrated gates (before the final parser correction)
 
-Single integrated `npm run preflight` passed6/6 at2026-11-07 01:29Beijing;251tests passed,0failed, strict typecheck and all10world demonstrations/restores passed. `npm run build` passed. Exact logs: artifacts/campaign-preflight.log, campaign-build.log. Source fingerprint: bd949584deee8a6d7f1c7277779d1d22669beb425ee6c1efa380a6e6a553355e. Real compiled smoke and fresh independent whole-branch review follow; old v0.5 reports are not evidence for v0.6.
+Single integrated `npm run preflight` passed6/6 at2026-11-07 01:29Beijing;251tests passed,0failed, strict typecheck and all10world demonstrations/restores passed. `npm run build` passed. Exact logs: artifacts/campaign-preflight.log, campaign-build.log. Source fingerprint: bd949584deee8a6d7f1c7277779d1d22669beb425ee6c1efa380a6e6a553355e. Real compiled smoke passed18/18groups at2026-11-07 01:29Beijing, exit0. Exact log artifacts/campaign-built-smoke.log and report built-smoke.json; fingerprintd035e569146b50d84cfcbe89e8e30d1dfc48c4a7df462ee74e073f06fbee7289. Includes actual fork/patch/validate campaign withXP110, interactive46actions+save/load, and allinstanceIDs containingwhitespace/quotes. Fresh independent whole-branch review remains pending; old v0.5 reports are not evidence for v0.6.
 
 ## Boundaries
 
 Finite original example content, explicit simulated time, one local character and one duel at a time. No browser UI, new network authority, hidden second inventory or untrusted-code sandbox. Sources for growth/quest semantics were pinned and read; upstream code/data were not copied or translated. No new dependency.
+
+## Final source acceptance after the bounded correction
+
+The only final-review sourcefinding was legalbrace-prefixedlegacytargethandling. Fix1fc60e2 restores syntax-failingJSON tolegacygrammar without allowing structurallyinvalid successfullyparsedJSON to fallback. The implementer observed2behaviorfailures/1pass then12/12coveringtests; independentfixdiffreview isPASS, noopenfindings. READMEheadlinewascorrectedindocumentation.
+
+Required current-input gates were refreshed exactly once after thatsource/testchange:
+
+- `npm run preflight > artifacts/campaign-preflight-final.log 2>&1`: exit0;254tests,254passed,0failed/skip;6/6checks including stricttypecheck andall10worlddemos/restores. 2026-11-07 01:41Beijing. Fingerprint`e8ff94ac8338187f7415592f68e30d4074aa44d87ac547a2adb5abd1cf3f430f`.
+- `npm run build > artifacts/campaign-build-final.log 2>&1`: exit0.
+- `node scripts/smoke-built.mjs > artifacts/campaign-built-smoke-final.log 2>&1`: exit0;18/18actualcompiledgroups. 2026-11-07 01:41Beijing. Fingerprint`dc24a21ce7de040b3b25f0c685a30b67dde325e481338fa166d54281d680194b`.
+
+The earlier251-test/initial18-groupevidenceaboveishistorical, notsubstitutedforthefinalcorrectedbytes. Documentation-onlyarchivaldoesnotchangetheverificationinputs. Archiveconstructionandindependentunpack,GitHubmainpublicationandNotiondeliveryrecordremainthenextactualstepsafterthisdocumentcommit; noneareclaimedcompletehere.
