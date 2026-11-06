@@ -50,6 +50,20 @@ node dist/cli/index.js play my-research.json --plugin examples/custom-module.mjs
 
 `src/authoring/packages.ts` 导出 `parseWorldPackage`、`cloneWorldPackage`、`inspectWorldPackage`；`src/authoring/patch.ts` 导出 `patchWorldPackage`。parse/clone/patch 负责结构与数据变换，语义检查由 inspect 使用正式宿主完成。文件导出适配器 `writeWorldPackage` 负责字节发布；调用方必须先通过语义检查。CLI 已执行这条完整链路。后续可视化创作工具复用这些接口。
 
+## 通用操作输入与组合文字界面
+
+交互 CLI 支持完整 Command JSON，实例 ID 和操作名含空格、引号或中文时也可寻址：
+
+```text
+do {"target":"地图 \"节点\"","action":"move","input":{"to":"forest"}}
+```
+
+既有 `do location move {"to":"forest"}` 简写继续可用。通用文本适配器 `src/presentation/actions.ts` 复用宿主 `parseCommand`，只负责文本编码与解析，不执行玩法；`formatActionCommand` 和 `boundActionCommand` 生成与解析器一致的提示。JSON 形式拒绝未知命令字段、非对象 input 和不合法 JSON，未执行的输入不会修改世界。`--json` 的早期参数解析错误也采用结构化输出，`--` 之后的同名文字仍按位置参数处理。
+
+`view.campaign.text` 通过明确绑定的 `text-view` 能力组合 `view.frontier.text`，再展示成长、生命、遭遇和任务。组合者无需读取另一个视图的私有实现或改动规则状态。由于两个实例均提供 text-view，必须明确指定基础视图绑定，避免歧义或自我调用。
+
+探索视图升级到1.0.1并显式接受原1.0.0的空状态；这不是把任意旧状态清空的通用迁移。完整的新能力接口、冻结任务与战利品语义见 [campaign.md](campaign.md)。
+
 ## 选择最小的独立职责
 
 一个模块可以提供一项能力，也可以组合多个子模块。判断依据是能否独立替换或扩展，不要求把每个函数做成插件。任意新系统都适用这条原则，代码没有预先穷举玩法类型。

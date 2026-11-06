@@ -16,7 +16,7 @@
 
 ## 公开能力
 
-所有新定义 version=1.0.0、apiVersion=1、stateVersion=1，能力版本 1.0.0。所有实例只写自身状态，嵌套调用加入宿主事务；不能用隐藏全局状态或第二套物品/金币账目。计数为非负安全整数，正数操作不能为零；ID 遵守现有 idSchema 并支持特殊对象键。任意外部能力返回都要核验消费字段、身份和数值，不能仅用 TypeScript 类型断言。
+所有新定义 version=1.0.0、apiVersion=1、stateVersion=1，能力版本 1.0.0。所有实例只写自身状态，嵌套调用加入宿主事务；不能用隐藏全局状态或第二套物品/金币账目。计数为非负安全整数，正数操作不能为零；ID 遵守现有 idSchema 并支持合法特殊对象键（如自身的 toString/valueOf）。宿主既有 __proto__/prototype/constructor 保留键限制不变。任意外部能力返回都要核验消费字段、身份和数值，不能仅用 TypeScript 类型断言。
 
 ### 成长、生命与恢复（四个定义）
 
@@ -44,7 +44,7 @@
 - accept({quest}) 在允许地点接取；所有前置 completed>0；同任务不能同时重复接取，非重复任务完成后不可再接。保存当前有效定义与每个胜利目标的 encounters.records.wins 基线；目标计数使用领取战利品后累计完成的遭遇，不把接取前胜利算入新任务。
 - turnIn({quest}) 对冻结任务重新校验位置、当前交付库存、当前wins与基线差；依次扣除交付物、发放奖励物与经验、记录 completed 次数并移除 active，同一事务。奖励满包、经验溢出或后续物品失败不能丢材料、误完成或重复奖励。物品收集读取当前库存；完成条件达成不自动消耗或发奖。
 - abandon({quest}) 只移除 active，不发奖，可在任意位置。当前目录有效修改或删除不改变已接任务；当前目录本身仍独立验证。冻结任务引用的物品/地点须存在；冻结胜利目标只读累计 records，允许旧遭遇已移除，未达标时仍可放弃。累计计数低于接取基线时拒绝，以防错误更换计数提供者。
-- list({}) 返回 {quests:[{id,name,description,status,ready,completed,remainingDelivery,remainingVictories,rewards,experience,locations}]}，status 为 available|locked|active|ready|completed。集合包括当前目录、active 和 completed 中的旧 ID；旧完成且已删配置用 ID 作名字、空目标奖励，保留 completed 数。repeatable 已完成且未 active 可再接，不用历史完成次数让新任务自动满足。
+- list({}) 返回 {quests:[{id,name,description,status,ready,completed,remainingDelivery,remainingVictories,rewards,experience,locations}]}，status 为 available|locked|active|ready|completed。ready 表示目标已经满足且当前地点允许交付，剩余目标字段独立显示条件进度。集合包括当前目录、active 和 completed 中的旧 ID；旧完成且已删配置用 ID 作名字、空目标奖励，保留 completed 数。repeatable 已完成且未 active 可再接，不用历史完成次数让新任务自动满足。
 
 ### 输入、视图与组合世界
 

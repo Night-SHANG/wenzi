@@ -6,6 +6,7 @@ import type { WorldRuntime } from '../src/engine/index.ts';
 import { loadWorldPackage, worldNames } from '../src/worlds.ts';
 import { readTextView } from '../src/adapters/text.ts';
 import type { JsonObject, ModuleInstance, WorldDefinition } from '../src/contracts.ts';
+import { parseActionCommand } from '../src/presentation/actions.ts';
 
 async function setup(name = 'frontier') {
   assert.ok((await worldNames()).includes(name), `${name} must be a discoverable world`);
@@ -120,4 +121,61 @@ test('frontier text view rejects malformed external market numbers without chang
   const before = world.snapshot();
   assert.throws(() => readTextView(world), /金币|安全数值/);
   assert.deepEqual(world.snapshot(), before);
+});
+
+test('frontier text view validates all external site locations before filtering', async () => {
+  const { pack } = await setup();
+  const registry = builtinRegistry();
+  registry.register({
+    manifest: { id: 'external.invalid-sites', title: '错误采集', version: '1.0.0', apiVersion: 1, stateVersion: 1, provides: { gathering: '1.0.0' } },
+    initialState: () => ({}), queries: { sites: { execute: () => ({ sites: [{ id: 'wood', location: 42, name: '木料', item: 'wood', quantity: 3, available: true, remainingSeconds: 0 }] }) } },
+  });
+  const gathering = instance(pack.world, 'gathering');
+  gathering.module = 'external.invalid-sites'; gathering.config = {}; delete gathering.bindings;
+  const world = createWorld(registry, pack.world), before = world.snapshot();
+  assert.throws(() => readTextView(world), /地点|location/);
+  assert.deepEqual(world.snapshot(), before);
+});
+
+test('frontier view migrates original empty saved state and rejects unexpected migration data', async () => {
+  const { world } = await setup();
+  const saved = world.snapshot();
+  saved.modules.view!.definitionVersion = '1.0.0';
+  const restored = restoreWorld(builtinRegistry(), saved);
+  assert.equal(restored.snapshot().modules.view!.definitionVersion, '1.0.1');
+  assert.deepEqual(restored.query('location', 'current'), world.query('location', 'current'));
+  saved.modules.view!.state = { unexpected: 1 };
+  assert.throws(() => restoreWorld(builtinRegistry(), saved), /不兼容/);
+});
+
+test('frontier generated hints address actual providers containing whitespace and quotes', async () => {
+  const { pack } = await setup(), id = '地图 "节点"';
+  instance(pack.world, 'location').id = id;
+  for (const module of pack.world.modules) for (const [capability, provider] of Object.entries(module.bindings ?? {})) {
+    if (provider === 'location') module.bindings![capability] = id;
+  }
+  const world = createWorld(builtinRegistry(), pack.world), before = world.snapshot();
+  const hint = readTextView(world).lines.find(line => line.startsWith('前往 林地：'));
+  assert.ok(hint);
+  const command = parseActionCommand(hint.slice(hint.indexOf('do ') + 3));
+  assert.equal(command.target, id);
+  assert.deepEqual(world.snapshot(), before);
+  assert.equal(world.dispatch(command).ok, true);
+  assert.equal((world.query(id, 'current') as JsonObject).id, 'forest');
+});
+
+test('frontier view follows Unicode code-point ID bounds before filtering foreign sites', async () => {
+  for (const size of [65, 128, 129]) {
+    const { pack } = await setup(), registry = builtinRegistry();
+    registry.register({
+      manifest: { id: 'external.unicode-sites', title: 'Unicode 采集', version: '1.0.0', apiVersion: 1, stateVersion: 1, provides: { gathering: '1.0.0' } },
+      initialState: () => ({}), queries: { sites: { execute: () => ({ sites: [{ id: 'wood', location: '😀'.repeat(size), name: '木料', item: 'wood', quantity: 3, available: false, remainingSeconds: 0 }] }) } },
+    });
+    const gathering = instance(pack.world, 'gathering');
+    gathering.module = 'external.unicode-sites'; gathering.config = {}; delete gathering.bindings;
+    const world = createWorld(registry, pack.world), before = world.snapshot();
+    if (size <= 128) assert.doesNotThrow(() => readTextView(world));
+    else assert.throws(() => readTextView(world), /采集地点 ID 无效/);
+    assert.deepEqual(world.snapshot(), before);
+  }
 });

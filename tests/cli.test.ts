@@ -59,3 +59,45 @@ test('interactive save/load keeps successful state after a rejected command', as
     assert.match(r.stdout, /已恢复/);
   } finally { await rm(dir, { recursive: true, force: true }); }
 });
+
+test('interactive JSON commands address whitespace and quoted IDs while malformed input preserves state', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'text-world-command-'));
+  try {
+    const pack = JSON.parse(await readFile('worlds/frontier.json', 'utf8'));
+    const id = '地图 "nodes" 空格';
+    for (const instance of pack.world.modules) {
+      if (instance.id === 'location') instance.id = id;
+      for (const key of Object.keys(instance.bindings ?? {})) if (instance.bindings[key] === 'location') instance.bindings[key] = id;
+    }
+    for (const command of pack.demo) if (command.target === 'location') command.target = id;
+    const worldFile = join(dir, 'world.json'), save = join(dir, 'saved.json');
+    await writeFile(worldFile, JSON.stringify(pack));
+    const commands = [
+      { target: id, action: 'move', input: { to: 'forest' } },
+      { target: 'gathering', action: 'gather', input: { site: 'wood' } },
+      { target: id, action: 'move', input: [] },
+      { target: id, action: 'move', input: { to: 'town' }, extra: true },
+    ].map(command => `do ${JSON.stringify(command)}`);
+    commands.push(`save ${save}`, 'exit', '');
+    const r = cli(['play', worldFile], commands.join('\n'));
+    assert.equal(r.status, 0, r.stderr);
+    const saved = JSON.parse(await readFile(save, 'utf8'));
+    assert.equal(saved.revision, 2);
+    assert.equal(saved.modules[id].state.current, 'forest');
+    assert.equal(saved.modules.inventory.state.containers.player.wood, 3);
+    assert.equal((r.stdout.match(/未完成：/g) ?? []).length, 2);
+  } finally { await rm(dir, { recursive: true, force: true }); }
+});
+
+test('early argument errors honor json mode and end-of-options remains positional', () => {
+  for (const args of [['modules', '--json', '--not-a-flag'], ['fork', 'farm', '--json', '--id']]) {
+    const r = cli(args);
+    assert.equal(r.status, 1);
+    const error = JSON.parse(r.stderr);
+    assert.equal(error.ok, false);
+    assert.equal(typeof error.error.message, 'string');
+  }
+  const positional = cli(['not-an-operation', '--', '--json']);
+  assert.equal(positional.status, 1);
+  assert.match(positional.stderr, /^失败/);
+});

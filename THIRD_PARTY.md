@@ -41,6 +41,19 @@ fast-json-patch 3.1.1 无运行时依赖，其来源 tag 对应提交 `9d313ac01
 
 来源 [README](https://github.com/widelands/widelands/blob/29753773d9c130e2a6a835ee6a14ad2bf317371d/README.md) 声明 GPL v2+。新增模块为本项目独立实现，没有复制/翻译上述代码、配方数据集、素材或游戏数值；没有新增第三方依赖。详见 [探索生产指南](docs/frontier.md)。
 
+## v0.6 任务冒险采用范围
+
+本批的具体阅读固定到以下提交，避免把变化中的默认分支当成稳定来源。只借鉴职责和状态语义，新增模块为本项目独立 TypeScript 实现；没有复制或翻译来源代码、任务文本、单位配置、素材或成套数值，也没有新增第三方依赖。
+
+| 来源 | 固定文件 | 用于核对的行为 | 本项目的适配 |
+| --- | --- | --- | --- |
+| Wesnoth `670e500946c82679efada285300caba38857bfc5` | [unit.hpp](https://github.com/wesnoth/wesnoth/blob/670e500946c82679efada285300caba38857bfc5/src/units/unit.hpp)、[advancement.cpp](https://github.com/wesnoth/wesnoth/blob/670e500946c82679efada285300caba38857bfc5/src/actions/advancement.cpp) | 经验阈值、升级资格、多次升级后的经验保留 | progression.track 保存累计经验，progression.curve 解析有界阈值表；不移植原单位转换、升级选项或自动恢复语义 |
+| CDDA `06be12f9884d82d387cb6b38dc549eca71c3835a` | [mission.cpp](https://github.com/CleverRaven/Cataclysm-DDA/blob/06be12f9884d82d387cb6b38dc549eca71c3835a/src/mission.cpp)、[npctalk_funcs.cpp](https://github.com/CleverRaven/Cataclysm-DDA/blob/06be12f9884d82d387cb6b38dc549eca71c3835a/src/npctalk_funcs.cpp) | 接取任务时记录累计击杀基线、检查当前库存、完成与清理职责 | quests.journal 记录已领取胜利的基线，冻结目标/奖励，交付时查询真实库存；扣料、奖励、经验和完成次数复用本项目宿主事务 |
+
+Wesnoth 的上述文件头与 [COPYING](https://github.com/wesnoth/wesnoth/blob/670e500946c82679efada285300caba38857bfc5/COPYING) 声明 GPL-2.0-or-later。CDDA 的 [LICENSE.txt](https://github.com/CleverRaven/Cataclysm-DDA/blob/06be12f9884d82d387cb6b38dc549eca71c3835a/LICENSE.txt) 声明主项目 CC-BY-SA-3.0，并另列第三方组件。这里记录实际研究来源的许可，不声称这些项目的代码已进入本工程。
+
+来源任务流程不提供本项目的跨模块原子事务保证。当前战斗领取与任务交付的完整回滚由已实现的通用宿主负责；物品、经验、生命和时间仍各自只有一个绑定能力提供者持有权威状态。详见 [任务冒险指南](docs/campaign.md)。
+
 ## 主项目发布许可
 
 主工程目前是用户的独立开发工程，package.json 标记 private / UNLICENSED；尚未替用户选择对外开源许可。此标记不改变上面第三方依赖的许可。后续确实移植其他来源的源码时，要按具体文件重新记录组合和分发条件。

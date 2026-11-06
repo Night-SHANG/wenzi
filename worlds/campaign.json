@@ -1,0 +1,816 @@
+{
+  "format": 1,
+  "world": {
+    "id": "world.campaign",
+    "title": "边境小镇：工坊与巡林",
+    "version": "1.0.0",
+    "description": "接取补给委托，制作工具、巡林战斗、领取战利品并成长；准备恢复物品后清剿采石场。世界规则和文字界面由独立模块组合。",
+    "entryView": {
+      "instance": "campaign-view",
+      "query": "render"
+    },
+    "modules": [
+      {
+        "id": "capacity",
+        "module": "capacity.slots",
+        "config": {}
+      },
+      {
+        "id": "inventory",
+        "module": "inventory.basic",
+        "config": {
+          "items": {
+            "wood": {
+              "name": "木料",
+              "weight": 500,
+              "volume": 700,
+              "length": 600
+            },
+            "stone": {
+              "name": "石料",
+              "weight": 1000,
+              "volume": 400,
+              "length": 100
+            },
+            "reed": {
+              "name": "芦苇",
+              "weight": 20,
+              "volume": 50,
+              "length": 700
+            },
+            "plank": {
+              "name": "木板",
+              "weight": 400,
+              "volume": 500,
+              "length": 600
+            },
+            "toolkit": {
+              "name": "工具包",
+              "weight": 1500,
+              "volume": 1300,
+              "length": 350
+            },
+            "tonic": {
+              "name": "草药剂",
+              "weight": 100,
+              "volume": 100,
+              "length": 100
+            },
+            "pelt": {
+              "name": "狼皮",
+              "weight": 100,
+              "volume": 100,
+              "length": 100
+            },
+            "ore": {
+              "name": "矿石",
+              "weight": 100,
+              "volume": 100,
+              "length": 100
+            },
+            "badge": {
+              "name": "巡林徽记",
+              "weight": 100,
+              "volume": 100,
+              "length": 100
+            },
+            "medal": {
+              "name": "守卫勋章",
+              "weight": 100,
+              "volume": 100,
+              "length": 100
+            }
+          },
+          "containers": {
+            "player": {
+              "limits": {
+                "slots": 8,
+                "maxWeight": 20000,
+                "maxVolume": 30000,
+                "maxLength": 1000
+              },
+              "items": {}
+            }
+          }
+        },
+        "bindings": {
+          "capacity": "capacity"
+        }
+      },
+      {
+        "id": "clock",
+        "module": "time.step",
+        "config": {
+          "secondsPerStep": 10
+        }
+      },
+      {
+        "id": "location",
+        "module": "location.nodes",
+        "config": {
+          "start": "town",
+          "nodes": {
+            "town": {
+              "name": "镇口工坊",
+              "description": "工坊与收购摊位就在镇口。带回材料后，可以在这里制作并领取产品。",
+              "exits": [
+                "forest",
+                "quarry",
+                "river"
+              ]
+            },
+            "forest": {
+              "name": "林地",
+              "description": "沿着林间小路，可以收集可再生的木料。东侧的小径通往河滩。",
+              "exits": [
+                "town",
+                "river"
+              ]
+            },
+            "quarry": {
+              "name": "采石场",
+              "description": "浅层石料散落在路边，收集后需要等待新的材料补充。",
+              "exits": [
+                "town"
+              ]
+            },
+            "river": {
+              "name": "河滩",
+              "description": "水边生长着芦苇，可用作工具包的绑绳材料。",
+              "exits": [
+                "town",
+                "forest"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": "gather-rules",
+        "module": "gathering.rules",
+        "config": {
+          "rules": {
+            "wood": {
+              "name": "收集木料",
+              "item": "wood",
+              "quantity": 3,
+              "cooldownSeconds": 30
+            },
+            "stone": {
+              "name": "收集石料",
+              "item": "stone",
+              "quantity": 2,
+              "cooldownSeconds": 40
+            },
+            "reed": {
+              "name": "收割芦苇",
+              "item": "reed",
+              "quantity": 3,
+              "cooldownSeconds": 20
+            }
+          }
+        }
+      },
+      {
+        "id": "gathering",
+        "module": "gathering.cooldown",
+        "config": {
+          "container": "player",
+          "sites": {
+            "wood": {
+              "location": "forest",
+              "rule": "wood"
+            },
+            "stone": {
+              "location": "quarry",
+              "rule": "stone"
+            },
+            "reed": {
+              "location": "river",
+              "rule": "reed"
+            }
+          }
+        },
+        "bindings": {
+          "location": "location",
+          "gather-rule": "gather-rules",
+          "inventory": "inventory",
+          "time": "clock"
+        }
+      },
+      {
+        "id": "recipes",
+        "module": "recipes.catalog",
+        "config": {
+          "recipes": {
+            "plank": {
+              "name": "木板",
+              "inputs": {
+                "wood": 2
+              },
+              "outputs": {
+                "plank": 2
+              },
+              "durationSeconds": 20
+            },
+            "toolkit": {
+              "name": "工具包",
+              "inputs": {
+                "plank": 2,
+                "stone": 1,
+                "reed": 1
+              },
+              "outputs": {
+                "toolkit": 1
+              },
+              "durationSeconds": 30
+            },
+            "tonic": {
+              "name": "草药剂",
+              "inputs": {
+                "reed": 2
+              },
+              "outputs": {
+                "tonic": 1
+              },
+              "durationSeconds": 10
+            }
+          }
+        }
+      },
+      {
+        "id": "workshop",
+        "module": "crafting.single",
+        "config": {
+          "container": "player",
+          "locations": [
+            "town"
+          ]
+        },
+        "bindings": {
+          "inventory": "inventory",
+          "time": "clock",
+          "recipes": "recipes",
+          "location": "location"
+        }
+      },
+      {
+        "id": "market",
+        "module": "market.fixed",
+        "config": {
+          "container": "player",
+          "prices": {
+            "wood": 1,
+            "stone": 2,
+            "reed": 1,
+            "plank": 4,
+            "toolkit": 18,
+            "pelt": 3,
+            "ore": 5,
+            "badge": 20
+          },
+          "initialCoins": 0
+        },
+        "bindings": {
+          "inventory": "inventory"
+        }
+      },
+      {
+        "id": "view",
+        "module": "view.frontier.text",
+        "config": {
+          "title": "边境小镇：工坊与巡林",
+          "container": "player"
+        },
+        "bindings": {
+          "location": "location",
+          "gathering": "gathering",
+          "crafting": "workshop",
+          "recipes": "recipes",
+          "inventory": "inventory",
+          "market": "market",
+          "time": "clock"
+        }
+      },
+      {
+        "id": "progression-rules",
+        "module": "progression.curve",
+        "config": {
+          "levels": [
+            {
+              "experience": 0,
+              "values": {
+                "maxHp": 20,
+                "attack": 4,
+                "defense": 1
+              }
+            },
+            {
+              "experience": 20,
+              "values": {
+                "maxHp": 26,
+                "attack": 6,
+                "defense": 2
+              }
+            },
+            {
+              "experience": 60,
+              "values": {
+                "maxHp": 34,
+                "attack": 8,
+                "defense": 3
+              }
+            }
+          ]
+        }
+      },
+      {
+        "id": "progression",
+        "module": "progression.track",
+        "config": {
+          "initialExperience": 0
+        },
+        "bindings": {
+          "progression-rule": "progression-rules"
+        }
+      },
+      {
+        "id": "vitals",
+        "module": "vitals.pool",
+        "config": {
+          "initialHp": 20
+        },
+        "bindings": {
+          "progression": "progression"
+        }
+      },
+      {
+        "id": "recovery",
+        "module": "recovery.items",
+        "config": {
+          "container": "player",
+          "remedies": {
+            "tonic": {
+              "name": "饮用草药剂",
+              "item": "tonic",
+              "healing": 20,
+              "locations": [
+                "town"
+              ]
+            }
+          }
+        },
+        "bindings": {
+          "inventory": "inventory",
+          "vitals": "vitals",
+          "location": "location"
+        }
+      },
+      {
+        "id": "encounter-rules",
+        "module": "encounters.catalog",
+        "config": {
+          "encounters": {
+            "wolf": {
+              "name": "林间灰狼",
+              "location": "forest",
+              "enemy": {
+                "maxHp": 12,
+                "attack": 5,
+                "defense": 0
+              },
+              "loot": {
+                "pelt": 1
+              },
+              "experience": 10,
+              "cooldownSeconds": 10
+            },
+            "raider": {
+              "name": "采石场袭击者",
+              "location": "quarry",
+              "enemy": {
+                "maxHp": 24,
+                "attack": 8,
+                "defense": 1
+              },
+              "loot": {
+                "ore": 2
+              },
+              "experience": 25,
+              "cooldownSeconds": 30
+            }
+          }
+        }
+      },
+      {
+        "id": "combat-rules",
+        "module": "combat.difference",
+        "config": {}
+      },
+      {
+        "id": "encounters",
+        "module": "encounters.duel",
+        "config": {
+          "container": "player"
+        },
+        "bindings": {
+          "encounter-rule": "encounter-rules",
+          "combat-rule": "combat-rules",
+          "location": "location",
+          "inventory": "inventory",
+          "progression": "progression",
+          "vitals": "vitals",
+          "time": "clock"
+        }
+      },
+      {
+        "id": "quest-rules",
+        "module": "quests.catalog",
+        "config": {
+          "quests": {
+            "supply": {
+              "name": "镇口补给",
+              "description": "工坊缺一套工具。收集材料并制作工具包，镇民会给你草药剂，帮助你走入林地。",
+              "prerequisites": [],
+              "delivery": {
+                "toolkit": 1
+              },
+              "victories": {},
+              "rewards": {
+                "tonic": 2
+              },
+              "experience": 10,
+              "locations": [
+                "town"
+              ],
+              "repeatable": true
+            },
+            "patrol": {
+              "name": "林地巡查",
+              "description": "接取委托后，在林地完成两次灰狼遭遇并领取战利品，再回镇交付。历史战绩不会替你完成新一轮巡查。",
+              "prerequisites": [
+                "supply"
+              ],
+              "delivery": {},
+              "victories": {
+                "wolf": 2
+              },
+              "rewards": {
+                "badge": 1
+              },
+              "experience": 20,
+              "locations": [
+                "town"
+              ],
+              "repeatable": true
+            },
+            "guard": {
+              "name": "守住采石场",
+              "description": "林地巡查完成后，恢复生命，前往采石场击退袭击者。准备充分再行动，胜利后记得领取战利品。",
+              "prerequisites": [
+                "patrol"
+              ],
+              "delivery": {},
+              "victories": {
+                "raider": 1
+              },
+              "rewards": {
+                "medal": 1
+              },
+              "experience": 30,
+              "locations": [
+                "town"
+              ],
+              "repeatable": false
+            }
+          }
+        }
+      },
+      {
+        "id": "quests",
+        "module": "quests.journal",
+        "config": {
+          "container": "player"
+        },
+        "bindings": {
+          "quest-rule": "quest-rules",
+          "inventory": "inventory",
+          "progression": "progression",
+          "location": "location",
+          "encounters": "encounters"
+        }
+      },
+      {
+        "id": "campaign-view",
+        "module": "view.campaign.text",
+        "config": {
+          "title": "边境小镇：工坊与巡林"
+        },
+        "bindings": {
+          "text-view": "view",
+          "progression": "progression",
+          "vitals": "vitals",
+          "recovery": "recovery",
+          "encounters": "encounters",
+          "quests": "quests"
+        }
+      }
+    ]
+  },
+  "demo": [
+    {
+      "target": "quests",
+      "action": "accept",
+      "input": {
+        "quest": "supply"
+      }
+    },
+    {
+      "target": "location",
+      "action": "move",
+      "input": {
+        "to": "forest"
+      }
+    },
+    {
+      "target": "gathering",
+      "action": "gather",
+      "input": {
+        "site": "wood"
+      }
+    },
+    {
+      "target": "location",
+      "action": "move",
+      "input": {
+        "to": "town"
+      }
+    },
+    {
+      "target": "location",
+      "action": "move",
+      "input": {
+        "to": "quarry"
+      }
+    },
+    {
+      "target": "gathering",
+      "action": "gather",
+      "input": {
+        "site": "stone"
+      }
+    },
+    {
+      "target": "location",
+      "action": "move",
+      "input": {
+        "to": "town"
+      }
+    },
+    {
+      "target": "location",
+      "action": "move",
+      "input": {
+        "to": "river"
+      }
+    },
+    {
+      "target": "gathering",
+      "action": "gather",
+      "input": {
+        "site": "reed"
+      }
+    },
+    {
+      "target": "location",
+      "action": "move",
+      "input": {
+        "to": "town"
+      }
+    },
+    {
+      "target": "workshop",
+      "action": "start",
+      "input": {
+        "recipe": "plank"
+      }
+    },
+    {
+      "target": "clock",
+      "action": "advance",
+      "input": {
+        "steps": 2
+      }
+    },
+    {
+      "target": "workshop",
+      "action": "collect",
+      "input": {}
+    },
+    {
+      "target": "workshop",
+      "action": "start",
+      "input": {
+        "recipe": "toolkit"
+      }
+    },
+    {
+      "target": "clock",
+      "action": "advance",
+      "input": {
+        "steps": 3
+      }
+    },
+    {
+      "target": "workshop",
+      "action": "collect",
+      "input": {}
+    },
+    {
+      "target": "quests",
+      "action": "turnIn",
+      "input": {
+        "quest": "supply"
+      }
+    },
+    {
+      "target": "quests",
+      "action": "accept",
+      "input": {
+        "quest": "patrol"
+      }
+    },
+    {
+      "target": "location",
+      "action": "move",
+      "input": {
+        "to": "forest"
+      }
+    },
+    {
+      "target": "encounters",
+      "action": "start",
+      "input": {
+        "encounter": "wolf"
+      }
+    },
+    {
+      "target": "encounters",
+      "action": "attack",
+      "input": {}
+    },
+    {
+      "target": "encounters",
+      "action": "attack",
+      "input": {}
+    },
+    {
+      "target": "encounters",
+      "action": "attack",
+      "input": {}
+    },
+    {
+      "target": "encounters",
+      "action": "claim",
+      "input": {}
+    },
+    {
+      "target": "clock",
+      "action": "advance",
+      "input": {
+        "steps": 1
+      }
+    },
+    {
+      "target": "encounters",
+      "action": "start",
+      "input": {
+        "encounter": "wolf"
+      }
+    },
+    {
+      "target": "encounters",
+      "action": "attack",
+      "input": {}
+    },
+    {
+      "target": "encounters",
+      "action": "attack",
+      "input": {}
+    },
+    {
+      "target": "encounters",
+      "action": "claim",
+      "input": {}
+    },
+    {
+      "target": "location",
+      "action": "move",
+      "input": {
+        "to": "town"
+      }
+    },
+    {
+      "target": "quests",
+      "action": "turnIn",
+      "input": {
+        "quest": "patrol"
+      }
+    },
+    {
+      "target": "recovery",
+      "action": "use",
+      "input": {
+        "remedy": "tonic"
+      }
+    },
+    {
+      "target": "quests",
+      "action": "accept",
+      "input": {
+        "quest": "guard"
+      }
+    },
+    {
+      "target": "location",
+      "action": "move",
+      "input": {
+        "to": "quarry"
+      }
+    },
+    {
+      "target": "encounters",
+      "action": "start",
+      "input": {
+        "encounter": "raider"
+      }
+    },
+    {
+      "target": "encounters",
+      "action": "attack",
+      "input": {}
+    },
+    {
+      "target": "encounters",
+      "action": "attack",
+      "input": {}
+    },
+    {
+      "target": "encounters",
+      "action": "attack",
+      "input": {}
+    },
+    {
+      "target": "encounters",
+      "action": "attack",
+      "input": {}
+    },
+    {
+      "target": "encounters",
+      "action": "attack",
+      "input": {}
+    },
+    {
+      "target": "encounters",
+      "action": "claim",
+      "input": {}
+    },
+    {
+      "target": "location",
+      "action": "move",
+      "input": {
+        "to": "town"
+      }
+    },
+    {
+      "target": "quests",
+      "action": "turnIn",
+      "input": {
+        "quest": "guard"
+      }
+    },
+    {
+      "target": "recovery",
+      "action": "use",
+      "input": {
+        "remedy": "tonic"
+      }
+    },
+    {
+      "target": "market",
+      "action": "sell",
+      "input": {
+        "item": "pelt",
+        "quantity": 2
+      }
+    },
+    {
+      "target": "market",
+      "action": "sell",
+      "input": {
+        "item": "ore",
+        "quantity": 2
+      }
+    }
+  ]
+}

@@ -22,7 +22,7 @@ try {
   const inputs=fingerprint('built-smoke');
   temporary=mkdtempSync(join(tmpdir(),'text-world-built-'));
   const names=run(['list','--json']);
-  assert.ok(Array.isArray(names)&&names.includes('frontier')&&names.includes('frontier-continuous'));
+  assert.ok(Array.isArray(names)&&['frontier','frontier-continuous','campaign','campaign-continuous'].every(name=>names.includes(name)));
   for(const name of names){
     const save=join(temporary,`${name}.json`);
     const output=run(['demo',name,'--json','--save',save]);
@@ -36,7 +36,7 @@ try {
   assert.equal(custom.snapshot.modules.research.state.progress,7);
   results.push({world:'external-author-module',actions:custom.results.length,revision:custom.snapshot.revision,ok:true});
   const catalog=run(['modules','--json']);
-  assert.ok(catalog.length>=16);
+  assert.ok(['quests.journal','encounters.duel','progression.track'].every(id=>catalog.some(row=>row.manifest.id===id)));
   const forked=join(temporary,'my authored farm.json');
   const edited=join(temporary,'authored-farm.json');
   assert.equal(run(['fork','farm','--id','author.smoke-farm','--out',forked,'--json']).ok,true);
@@ -92,9 +92,63 @@ try {
   assert.equal(beforeResume.modules.inventory.state.containers.player.wood,1);
   assert.deepEqual(afterResume,beforeResume);
   results.push({world:'interactive-frontier-save-load',actions:originalFrontier.demo.length+2,revision:afterResume.revision,ok:true});
+  const campaignFork=join(temporary,'my campaign.json');
+  const campaignEdited=join(temporary,'campaign-edited.json');
+  const campaignPatch=join(temporary,'campaign.patch.json');
+  assert.equal(run(['fork','campaign','--id','author.smoke-campaign','--out',campaignFork,'--json']).ok,true);
+  const campaignPack=JSON.parse(readFileSync(campaignFork,'utf8'));
+  const questIndex=campaignPack.world.modules.findIndex(instance=>instance.id==='quest-rules');
+  assert.ok(questIndex>=0);
+  writeFileSync(campaignPatch,JSON.stringify([
+    {op:'test',path:`/world/modules/${questIndex}/id`,value:'quest-rules'},
+    {op:'replace',path:`/world/modules/${questIndex}/config/quests/guard/experience`,value:35}
+  ]));
+  assert.equal(run(['patch',campaignFork,'--patch',campaignPatch,'--out',campaignEdited,'--run-demo','--json']).ok,true);
+  const campaign=run(['demo',campaignEdited,'--json']);
+  assert.equal(campaign.snapshot.modules.progression.state.experience,110);
+  assert.equal(campaign.snapshot.modules.market.state.coins,16);
+  assert.deepEqual(campaign.snapshot.modules.quests.state.completed,{supply:1,patrol:1,guard:1});
+  results.push({world:'authored-campaign',actions:campaign.results.length,revision:campaign.snapshot.revision,ok:true});
+
+  const campaignCheckpoint=join(temporary,'campaign checkpoint.save.json');
+  const campaignResumed=join(temporary,'campaign resumed.save.json');
+  const originalCampaign=JSON.parse(readFileSync(resolve('worlds/campaign.json'),'utf8'));
+  const campaignCommands=originalCampaign.demo.map(command=>`do ${JSON.stringify(command)}`);
+  campaignCommands.push(`save ${campaignCheckpoint}`,'do location move {"to":"forest"}','do gathering gather {"site":"wood"}',`load ${campaignCheckpoint}`,`save ${campaignResumed}`,'exit','');
+  const campaignPlay=spawnSync(process.execPath,[cli,'play','campaign'],{cwd:temporary,input:campaignCommands.join('\n'),encoding:'utf8',timeout:20000});
+  assert.equal(campaignPlay.status,0,campaignPlay.stderr||String(campaignPlay.error));
+  assert.doesNotMatch(campaignPlay.stdout,/操作未生效|未完成：/);
+  assert.match(campaignPlay.stdout,/已恢复：/);
+  const campaignBefore=JSON.parse(readFileSync(campaignCheckpoint,'utf8'));
+  assert.equal(campaignBefore.modules.progression.state.experience,105);
+  assert.equal(campaignBefore.modules.vitals.state.hp,22);
+  assert.deepEqual(campaignBefore.modules.encounters.state.wins,{wolf:2,raider:1});
+  assert.deepEqual(JSON.parse(readFileSync(campaignResumed,'utf8')),campaignBefore);
+  results.push({world:'interactive-campaign-save-load',actions:originalCampaign.demo.length+2,revision:campaignBefore.revision,ok:true});
+
+  const renamed=structuredClone(originalCampaign), renamedFile=join(temporary,'quoted campaign.json'), renamedSave=join(temporary,'quoted campaign.save.json');
+  const ids=new Map(renamed.world.modules.map(instance=>[instance.id,`模块 "${instance.id}" 空格`]));
+  for(const instance of renamed.world.modules){
+    instance.id=ids.get(instance.id);
+    for(const key of Object.keys(instance.bindings??{})) instance.bindings[key]=ids.get(instance.bindings[key]);
+  }
+  renamed.world.entryView.instance=ids.get(renamed.world.entryView.instance);
+  for(const command of renamed.demo)command.target=ids.get(command.target);
+  writeFileSync(renamedFile,JSON.stringify(renamed));
+  const renamedCommands=renamed.demo.map(command=>`do ${JSON.stringify(command)}`);
+  renamedCommands.push(`save ${renamedSave}`,'exit','');
+  const renamedPlay=spawnSync(process.execPath,[cli,'play',renamedFile],{cwd:temporary,input:renamedCommands.join('\n'),encoding:'utf8',timeout:20000});
+  assert.equal(renamedPlay.status,0,renamedPlay.stderr||String(renamedPlay.error));
+  assert.doesNotMatch(renamedPlay.stdout,/操作未生效|未完成：/);
+  const renamedSnapshot=JSON.parse(readFileSync(renamedSave,'utf8'));
+  assert.equal(renamedSnapshot.modules[ids.get('progression')].state.experience,105);
+  assert.equal(renamedSnapshot.modules[ids.get('market')].state.coins,16);
+  assert.equal(renamedSnapshot.modules[ids.get('vitals')].state.hp,22);
+  assert.deepEqual(renamedSnapshot.modules[ids.get('quests')].state.completed,{supply:1,patrol:1,guard:1});
+  results.push({world:'interactive-campaign-arbitrary-ids',actions:renamed.demo.length,revision:renamedSnapshot.revision,ok:true});
   assert.deepEqual(fingerprint('built-smoke'),inputs,'Verification inputs changed during built smoke');
   report('passed',{fingerprint:inputs});
-  console.log('构建后的 JS、跨目录启动、世界创作、外部模块、交互探索生产与文件存档验证通过');
+  console.log('构建后的 JS、跨目录启动、世界创作、交互任务战斗成长、任意ID与文件存档验证通过');
 } catch(error) {
   report('failed',{error:String(error)});
   throw error;

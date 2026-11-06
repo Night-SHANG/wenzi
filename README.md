@@ -4,7 +4,7 @@
 
 这是独立的文字世界项目，与词条无限组合游戏分开。全部现有和未来系统、规则、内容、数据、表现与操作都按模块组织。仓库中的经营、战棋和叙事只是架构验证样例，不限制未来玩法。
 
-当前可运行模块宿主、22 个内置模块定义、8 个世界配置和一个从外部文件加载的作者模块。新增探索、可再生采集、独立配方与定时制作，已与库存、交易和存档组成可重复流程。作者可发现模块、复制世界、用标准 JSON Patch 修改装配、校验后导出并运行。界面使用独立文字视图与命令行适配器；正式游戏 UI 和完整玩法仍在继续开发。
+当前版本 **0.6.0-alpha.1**，包含模块宿主、32 个内置模块定义、10 个世界配置和一个从外部文件加载的作者模块。小镇冒险把探索、采集、制作、任务、战斗、成长、恢复和交易组成可重复游玩的流程；规则、内容、状态与文字视图分别装配。作者可发现模块、复制世界、用标准 JSON Patch 修改装配、校验后导出并运行。正式游戏 UI 和更丰富的玩法仍在继续开发。
 
 源码仓库：[Night-SHANG/wenzi](https://github.com/Night-SHANG/wenzi)。当前 CI：[Modular runtime checks](https://github.com/Night-SHANG/wenzi/actions/workflows/preflight.yml)。仓库公开不代表主项目已选择开源授权协议；依赖许可见 `THIRD_PARTY.md`。
 
@@ -28,6 +28,8 @@ node dist/cli/index.js demo farm
 node dist/cli/index.js demo tactics
 node dist/cli/index.js demo story
 node dist/cli/index.js demo frontier
+node dist/cli/index.js demo campaign
+node dist/cli/index.js play campaign
 node dist/cli/index.js play frontier
 node dist/cli/index.js play farm
 ```
@@ -76,10 +78,14 @@ JSON Patch 支持 `add/remove/replace/move/copy/test`。建议在按数组位置
 | story | 叙事节点、选择、终点 | 宿主不要求角色、战斗或时间模块 |
 | frontier | 地点移动、资源恢复、两段制作、出售与存档 | 多模块共享真实资源，规则与进度独立 |
 | frontier-continuous | 同一探索生产世界按模拟秒推进 | 更换时钟保留采集冷却和已付款订单 |
+| campaign | 任务链、重复遭遇、经验等级、生命恢复、采集制作与交易 | 多种规则组合成可继续游玩的冒险循环 |
+| campaign-continuous | 同一小镇冒险按模拟秒推进 | 战斗和任务进行中更换时钟仍保留进度 |
 
 示例数值是作者测试配置，未进行正式平衡。连续时间模块接收显式秒数，尚未绑定真实帧循环。战棋双方可手动操作，尚无 AI、寻路或地形效果。
 
 探索世界的完整操作、模块契约与失败恢复见 [docs/frontier.md](docs/frontier.md)。运行 `demo frontier` 可自动完成采集木料/石料/芦苇、制作木板和工具包、出售一轮，最终获得 18 金币；资源恢复后可以继续循环。制作途中可以保存恢复或更换时钟，已经支付的订单不会被后续配方编辑重新解释。
+
+小镇冒险的完整路线见 [docs/campaign.md](docs/campaign.md)。运行 `demo campaign` 自动执行46个动作，完成三项任务、两场灰狼遭遇和一场袭击者遭遇，最终总经验105、等级3、生命22/34、金币16。任务接取时冻结要求，重复任务重新记录战绩基线；胜利后明确领取奖励，背包满时保留战利品等待重试。升级曲线、伤害公式、任务内容、遭遇内容和恢复用品均由独立模块提供。
 
 ## 实际操作一轮
 
@@ -94,6 +100,8 @@ save my-world.save.json
 ```
 
 结果：消耗一个种子；两天后收获三枚芜菁；出售两枚获得 10 金币，库存剩一枚芜菁。`actions` 显示当前装配真正提供的动作及参数；`look` 显示文字视图；`load my-world.save.json` 恢复；`exit` 退出。
+
+也可使用通用 JSON 命令：`do {"target":"quests","action":"accept","input":{"quest":"supply"}}`。这一形式支持含空格、引号和 Unicode 的合法实例 ID；文字视图生成的提示使用实际绑定，不依赖固定实例名。`actions` 是作者工具，会列出直接修改物品和经验等调试能力。
 
 作物未成熟、库存不足或容器放不下时，动作失败并保留原状态。命令行退出不会自动保存，需使用 `save`。存储失败会显示错误，只有文件成功写入后才显示“已保存”。
 
@@ -132,6 +140,7 @@ node dist/cli/index.js demo examples/custom-world.json --plugin examples/custom-
 | src/engine | 注册、依赖装配、单宿主事务、查询、事件队列、存档与迁移 |
 | src/modules | 可替换的规则与文字视图定义 |
 | src/adapters | 文字输出、文件和内存存储适配 |
+| src/presentation | 通用命令文本解析与可复制操作提示 |
 | src/authoring | 世界包解析、复制、标准补丁与独立运行检查 |
 | src/catalog.ts | 方便使用的内置目录，宿主不依赖它 |
 | worlds | 数据形式的世界装配与示范动作 |
@@ -151,6 +160,6 @@ node dist/cli/index.js demo examples/custom-world.json --plugin examples/custom-
 
 正式浏览器视觉界面、可视化模组编辑器、模块下载与分发、不可信代码隔离、服务器权限模型、跨服事务、联机/MMORPG、实时枪战、空间流式加载与大规模性能验证，都还没有实现。当前保存文件没有加密签名；它是本地作者数据格式，不是反作弊机制。技术验证不证明长期玩法乐趣或产品完成。
 
-成熟游戏的具体源码研究已保留，但尚未移植 CDDA、Wesnoth、Widelands 或 micropolisJS 的规则。核心基础校验直接复用 Ajv、semver，世界修改复用 fast-json-patch；游戏样例独立编写，用于验证承接规则所需的模块边界。详见 [THIRD_PARTY.md](THIRD_PARTY.md)。
+成熟游戏的具体源码研究已保留。生产职责参考 Widelands；经验资格和溢出职责参考 Wesnoth；任务接取基线、当前库存条件和交付职责参考 CDDA。规则适配为本项目独立实现，当前没有复制这些游戏的代码、素材或成套数值。核心基础校验直接复用 Ajv、semver，世界修改复用 fast-json-patch。具体固定来源和采用范围见 [THIRD_PARTY.md](THIRD_PARTY.md)。
 
-本地实际检查结果在 `artifacts/`，工程包包含 `verification/`。上一版提交 `f86be17` 的 [Actions run 42246209860](https://github.com/Night-SHANG/wenzi/actions/runs/42246209860) 已在 Linux 和 Windows 通过；新版提交需以自己的运行结果为准，不能沿用旧结果。当前进度见 [docs/frontier-progress.md](docs/frontier-progress.md)，设计与执行记录见 `docs/`。
+本地实际检查结果在 `artifacts/`，工程包包含 `verification/`。历史 v0.4 提交 `f86be17` 的 [Actions run 42246209860](https://github.com/Night-SHANG/wenzi/actions/runs/42246209860) 已在 Linux 和 Windows 通过；v0.5 和本版的新 CI 未查询，不能沿用旧结果。当前进度见 [docs/campaign-progress.md](docs/campaign-progress.md)，设计与执行记录见 `docs/`。

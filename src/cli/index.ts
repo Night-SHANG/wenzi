@@ -6,7 +6,7 @@ import { readFile } from 'node:fs/promises';
 import { builtinRegistry } from '../catalog.ts';
 import { createWorld, restoreWorld, reconfigureWorld } from '../engine/index.ts';
 import type { ModuleRegistry, WorldRuntime } from '../engine/index.ts';
-import type { CommandResult, JsonObject, ModuleDefinition, WorldSnapshot } from '../contracts.ts';
+import type { CommandResult, ModuleDefinition, WorldSnapshot } from '../contracts.ts';
 import { loadWorldPackage, worldNames } from '../worlds.ts';
 import { JsonFileStorage } from '../adapters/storage.ts';
 import { renderText, readTextView } from '../adapters/text.ts';
@@ -15,6 +15,7 @@ import { cloneWorldPackage, inspectWorldPackage } from '../authoring/packages.ts
 import { patchWorldPackage } from '../authoring/patch.ts';
 import type { PackageInspection } from '../authoring/contracts.ts';
 import { EngineError, errorOf } from '../engine/json.ts';
+import { formatActionCommand, parseActionCommand } from '../presentation/actions.ts';
 
 const storage = new JsonFileStorage();
 const help = `模块化文字世界 · 作者运行工具
@@ -43,6 +44,7 @@ const help = `模块化文字世界 · 作者运行工具
   look / 状态
   actions / 动作
   do <实例> <操作> <JSON参数>
+  do {"target":"任意实例 ID","action":"操作","input":{}}
   save <文件路径>
   load <文件路径>
   swap <世界包名称或路径>
@@ -108,12 +110,9 @@ async function play(registry: ModuleRegistry, runtime: WorldRuntime): Promise<vo
         if (verb === 'help' || verb === '帮助') console.log(help);
         else if (verb === 'look' || verb === '状态') console.log(renderText(runtime));
         else if (verb === 'actions' || verb === '动作') {
-          for (const action of runtime.actions()) console.log(`${action.target} ${action.action} ${JSON.stringify(action.schema)}`);
+          for (const action of runtime.actions()) console.log(`${formatActionCommand({ target: action.target, action: action.action })}\n  参数约定：${JSON.stringify(action.schema)}`);
         } else if (verb === 'do') {
-          const match = rest.match(/^(\S+)\s+(\S+)(?:\s+([\s\S]+))?$/);
-          if (!match) throw new Error('用法：do <实例> <操作> {"参数":"值"}');
-          const input: unknown = match[3] ? JSON.parse(match[3]) : {};
-          report(runtime.dispatch({ target: match[1]!, action: match[2]!, input: input as JsonObject }));
+          report(runtime.dispatch(parseActionCommand(rest)));
           console.log(renderText(runtime));
         } else if (verb === 'save') {
           if (!rest) throw new Error('请指定存档文件路径');
@@ -140,7 +139,9 @@ async function play(registry: ModuleRegistry, runtime: WorldRuntime): Promise<vo
 }
 
 async function main(): Promise<void> {
-  const parsed = parseArgs({ allowPositionals: true, options: {
+  const args = process.argv.slice(2), end = args.indexOf('--');
+  jsonErrors = (end < 0 ? args : args.slice(0, end)).includes('--json');
+  const parsed = parseArgs({ args, allowPositionals: true, options: {
     json: { type: 'boolean' }, plugin: { type: 'string', multiple: true }, save: { type: 'string' },
     id: { type: 'string' }, title: { type: 'string' }, 'world-version': { type: 'string' },
     out: { type: 'string' }, patch: { type: 'string' }, overwrite: { type: 'boolean' }, 'run-demo': { type: 'boolean' },
