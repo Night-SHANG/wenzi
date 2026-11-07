@@ -182,3 +182,22 @@ node dist/cli/index.js play my-party.json
 旧 skills1.0 的冷却、quests1.0 的接取基线与完成记录均有准确身份迁移；loadout文字视图1.1仅接受原1.0的空状态；duel1.2接受本定义1.0/1.1的stateVersion1。未知版本不清空、不猜测。旧世界不包含新能力，继续使用原行为。新能力详细输入/输出、技能targets逐行数据、冻结状态与失败语义见 [队伍设计](superpowers/specs/2026-11-07-party-design.md)。
 
 同一组角色的 party、battles.party、可选 encounters.duel 必须明确共享一个 `battle-session.exclusive`。所有非空战斗阶段，包括胜利待领取和失败，都持有会话；错误释放会被战斗不变量拒绝并回滚。不同角色可以用不同会话，宿主不猜测作者是否错误地让两个会话共享同一生命池。向活动旧战斗增加空会话会拒绝；先结束再装配。移除持锁控制器前先完成/撤退；已经明确移除留下的孤立owner只能显式 release，不自动丢弃。
+
+## v0.9 纯经营装配与独立工坊
+
+`settlement` / `settlement-continuous` 使用同一 `world.settlement` 身份，每个21实例、32示范动作。钱包、商店内容、价格、交易、日历、营业策略和文字表现分别是公开能力；现有库存/制作/种植模块不需要为经营重写。所有准确字段与单位见 [经营契约](superpowers/specs/2026-11-07-settlement-design.md)，完整路线见 [河岸城镇](settlement.md)。
+
+```bash
+node dist/cli/index.js describe commerce.shop --json
+node dist/cli/index.js describe availability.schedule --json
+node dist/cli/index.js fork settlement --id author.my-town --out my-town.json
+node dist/cli/index.js patch my-town.json --patch examples/settlement-authoring.patch.json --out cheaper-seed-town.json --run-demo
+```
+
+交易目录可由多个商店共享，每个 `commerce.shop` 仍显式绑定自身inventory/wallet/location资源域。整个目录的list/get条款必须一致，只有当前店的账户、容器、商品与地点要求存在于本实例的绑定域。钱货只能从这些真实提供者转移；报价不会锁定旧价格，实际成交重新查询。给库存不足的买单估价是合法的，但 `available=false`，命令拒绝。
+
+`seedworks` 与 `kitchen` 是同一 `crafting.single` 定义的两份装配；前者读商店容器和留种配方，后者读玩家容器和餐食配方。二者共用权威时钟，但支付、订单和产物隔离。`view.workshop.text` 的每个实例只绑定一个工坊、一个配方目录和一个前级视图；标题配置标注本工坊，最终世界标题保留前级标题。视图生成真实绑定的JSON命令，支持含空格、引号和Unicode的实例名。
+
+新 `wallet.accounts` 配置中的coins只初始化新世界，不重置存档余额；账户集合变化需要明确迁移。价格/营业策略的准确1.0/state1空状态可互换，未知版本或非空历史拒绝。营业时段只控制新交易，已付款制作继续计时与领取。日历可以重新解释累计秒的周期位置，不保存第二套时间。
+
+任务日志升级至1.2.0：progression是可选绑定；若任何当前目录或已接取冻结条款承诺正经验，仍强制需要有效成长能力。把当前经验改成0或删除目录不能抹掉旧承诺。准确1.0/1.1任务状态升级保留完整历史。旧 `market.fixed` 与新增账户/库存域没有隐式跨世界迁移。

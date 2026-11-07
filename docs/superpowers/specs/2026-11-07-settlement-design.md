@@ -42,7 +42,7 @@ fixed：total=base×quantity。stock：库存紧张的每个单位价格为2×ba
 
 配置 `{shop:ID,customerContainer:ID,customerAccount:ID}`；状态 `{trades:Count}` 初始0，只记录成功交易命令次数，所有钱货仍在wallet/inventory。requires inventory,wallet,shop-rule,trade-price,availability 均^1，location可选。玩家与商店容器、账户均必须不同；不同商店实例可显式共享同一仓库/账户。location非null才要求location并核验describe。
 
-实际调用：inventory.list/count/transfer沿现有接口；wallet.balance/transfer按Task1；shop-rule.list/get一致；availability.status按Task3；trade-price.quote按Task1（回显及总价必须精确合法）。每个当前offer在双方容器中都必须存在物品定义；两账户存在。当前目录持续校验，当前店删除或坏引用不可用；本模块没有未完成报价订单或冻结钱货。
+实际调用：inventory.list/count/transfer沿现有接口；wallet.balance/transfer按Task1；shop-rule.list/get一致；availability.status按Task3；trade-price.quote按Task1（回显及总价必须精确合法）。每个当前offer在双方容器中都必须存在物品定义；两账户存在。目录list/get全部行核对身份与条款一致，但只校验当前店的库存/钱包/地点引用，允许共享目录跨独立资源域；当前店删除或坏引用不可用；本模块没有未完成报价订单或冻结钱货。
 
 - quote({side,item,quantity}) → `{shop,item,side,quantity,total,stock,owned,customerCoins,merchantCoins,open,available,reasons:string[]}`。stock为商店当前数量，owned为玩家数量。unknown item/unsupported direction/坏提供者拒绝；正常闭店、地点不符、库存不足、付款方余额不足返回available=false，reasons依次为 CLOSED、WRONG_LOCATION、INSUFFICIENT_STOCK、INSUFFICIENT_FUNDS 中适用项。available仅指这些前置条件；最终容量/计数/返回一致性仍由实际事务验证。报价不保留、不锁定；成交重新读取当前条款与状态。
 - buy/sell({item,quantity}) 在不可执行时fail('TRADE_UNAVAILABLE',reasons文本)，成功时先wallet.transfer付款，再inventory.transfer交货，检查两个返回及双方前后余额/物品数量；晚容量错误、假返回、不写入均整体回滚。成功trades+1、emit commerce.traded `{shop,item,side,quantity,total}`，返回 `{shop,item,side,quantity,total,stock,owned,customerCoins,merchantCoins,trades}`（这些为成交后值）。禁止吞掉嵌套失败。
@@ -67,7 +67,7 @@ readAvailability检查open为boolean；open⇒opens0、closes正数或null；clo
 
 ## Task4：纯经营组合、兼容消费者和交付
 
-Root：修改quests.ts，新增 settlement-view.ts、workshop-view.ts、settlement.ts聚合、tests/settlement-world.test.ts、tests/settlement-consumers.test.ts；注册catalog；worlds/settlement.json与settlement-continuous.json；更新编译smoke、版本0.9.0-alpha.1、README/作者指南/来源与追踪记录。
+Root：修改quests.ts，新增 settlement-view.ts、workshop-view.ts、text-view-data.ts小型共享读取辅助、settlement.ts聚合，以及settlement-world/consumers/views测试；注册catalog；worlds/settlement.json与settlement-continuous.json；更新编译smoke、版本0.9.0-alpha.1、README/作者指南/来源与追踪记录。旧party测试仅随当前定义版本和全局目录数量更新期望。世界JSON、组合测试与CLI smoke由独立lane写入，Root保持统一集成和提交。
 
 quests.journal → definition1.2.0（capability quests仍1.0.0，state1）；progression变optional。绑定了就继续验证status；任一当前目录或已接取冻结条款experience>0时必须有有效progression。无经验任务允许无成长模块，turnIn既有付款/奖励/经验事务保留。准确迁移本定义1.0.0或1.1.0/state1，未知历史拒绝。当前目录编辑成0不能掩盖已接取非0承诺。
 

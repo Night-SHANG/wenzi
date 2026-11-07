@@ -1,5 +1,7 @@
 # v0.9 纯城镇经营：定向源码核查
 
+本页保留实现前的研究原记录与候选资源账。最终采用的路线改为玩家2币/商店4币、双工坊制作餐食并交单，总币6；下文单工坊/商店0币/直接交作物是当时的候选方案，不是已发布世界配置。准确实施契约与实际结果见 [设计](superpowers/specs/2026-11-07-settlement-design.md) 和 [河岸城镇](settlement.md)。
+
 记录：2026-11-07 13:21 北京时间（UTC+08:00）。本轮只研究，不修改 tracked 文件、不引入依赖、不运行全库测试。已读本仓库 AGENTS.md、THIRD_PARTY.md、README.md、docs/frontier.md、docs/source-history.md 和现有生产/种植/市场/库存/宿主相关实现。此为既有 FLARE/Widelands 研究的定向延续。
 
 ## 结论与采用边界

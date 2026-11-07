@@ -1,6 +1,6 @@
 # Implementation ledger — docs/superpowers/plans/2026-11-06-runtime.md
 
-本文件保留 v0.3 宿主批次的历史记录；当前 v0.4 世界创作与仓库接入进度见 `docs/authoring-progress.md`。
+本文件保留 v0.3 宿主批次的历史记录；当前 v0.9 城镇经营与有限交易进度见 `docs/settlement-progress.md`，v0.4作者工具历史见 `docs/authoring-progress.md`。
 
 ## Preflight decisions
 

@@ -26,6 +26,17 @@ Baseline cb414feef8ede9f7486e1be68cc90c1160cd2134; branch feat/settlement-econom
 
 ## Work state
 
-Primary-code research and existing-pattern recon complete. Design and plan written; fresh builder check running. No production implementation yet. Root hand calculation is in spec; initial branch clean before these records. Next: resolve builder findings, commit design, extract briefs and dispatch three lanes while Root implements integration.
+Initial design record: primary-code research/recon and hand calculation complete; branch clean before this batch. Builder check, dispatch, implementation and later verification are recorded chronologically below.
 
 Builder check 2026-11-07T13:29:03+08:00: nothing important left; exact existing producers/consumers and boundaries checked. Source research copied to docs/settlement-source-research.md. Three lanes ready; no unresolved interface question.
+
+Ruling: Commerce validates all catalog list/get term consistency but resource references only for its selected shop — other shops may intentionally use separate bound inventory/wallet domains — checking all references would falsely reject valid multi-instance composition.
+Dispatch e3ee6ba: Task1 implement_economy_rules_v09; Task2 implement_commerce_v09; Task3 implement_calendar_v09. Root owns Task4; all worker paths disjoint.
+
+Ruling: Once the three implementation lanes finish, split Task4's two world files, integration test and compiled CLI smoke into a disjoint integration lane while Root owns quests, views, registration and docs. Add a small shared text-view-data reader file rather than duplicate reader blocks. Root still owns the index and all aggregate gates. Cost if wrong: interface/binding mismatch; exact public contracts, whole-world tests and independent review cover it.
+
+2026-11-07 13:42 Beijing: Task1 committed 1c60a2e (14 focused tests, scoped types passed); Task3 84276df (13 focused tests); Task2 61d9bdc (28 focused tests, scoped types passed). Three independent task reviews are spec-compliant/quality-approved, no Critical/Important/Minor findings. Calendar review defers paid-job/hour-change composition to Task4; commerce review's host rollback/replay claim is covered by its reported real-host snapshots and will also be exercised by the final full suite. Neither reviewer requested a speculative rerun.
+
+Root zero-XP consumer RED: 7 tests, 2 passed/5 failed before implementation. Combined consumers/quests/party check after implementation: 33/34, sole failure was legacy assertion still expecting journal1.1; corrected to1.2 and exact focused legacy test passed1/1. New text-view tests initial RED was missing-module import (not a behavior assertion); implemented view checks passed5/5. Final Root focused and global evidence follows in reports/progress, without claiming completed external delivery.
+
+2026-11-07 13:50 Beijing: Root consumer/view commit980d889 independently spec/quality approved; world/CLI lane focused9/9 and source syntax check passed, integratede2ff44f. Real world test closes calendar paid-order/opening-hours cannot-verify item. Root view crossscope items are covered by actual21-instance/32-command worlds, parsed bound hints, both clock outcomes and final aggregate gates. Preflight6/6 with459/459 tests and16world runs/restores passed13:49:13; buildexit0; compiled33/33 passed13:50:11. Source/runtime fingerprints archived in settlement-verification.json; no engine/contracts/old14world/dependency changes. Final fresh wholebranch review next. All five implementation reports and four scoped review records are archived in docs/tasks. npm emits existing environment http-proxy warning; no diagnostics from project types or failed behavior tests.

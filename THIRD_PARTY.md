@@ -84,6 +84,14 @@ CDDA主项目许可仍为上述CC-BY-SA-3.0。FLARE的实际文件头声明GPL-3
 
 核查 [bobeff固定README](https://github.com/bobeff/open-source-games/blob/3a9ab8fc892a2cdadf8989a72ba7624a11e39cec/README.md)未找到Tuxemon，故记录为补充定向研究对象，未误称来自该目录条目。原Wesnoth等发现路径保持。完整研究、函数边界与证据限制见 [队伍源码研究](docs/party-source-research.md)。
 
+## v0.9 商店与城镇经营采用范围
+
+在已有固定来源上继续核查 FLARE `f9a17a266293a897a1d7eae2d54408b0de39af27` 的 [ItemManager.cpp](https://github.com/flareteam/flare-engine/blob/f9a17a266293a897a1d7eae2d54408b0de39af27/src/ItemManager.cpp)、[MenuInventory.cpp](https://github.com/flareteam/flare-engine/blob/f9a17a266293a897a1d7eae2d54408b0de39af27/src/MenuInventory.cpp)、[ItemStorage.cpp](https://github.com/flareteam/flare-engine/blob/f9a17a266293a897a1d7eae2d54408b0de39af27/src/ItemStorage.cpp)、[MenuVendor.cpp](https://github.com/flareteam/flare-engine/blob/f9a17a266293a897a1d7eae2d54408b0de39af27/src/MenuVendor.cpp)、[MenuManager.cpp](https://github.com/flareteam/flare-engine/blob/f9a17a266293a897a1d7eae2d54408b0de39af27/src/MenuManager.cpp)、MenuItemStorage/NPC调用与COPYING。文件头GPL-3.0-or-later，COPYING为GPL v3正文。Widelands固定提交 `29753773d9c130e2a6a835ee6a14ad2bf317371d` 的production_program.cc与bakery配方再核先检查全部消耗、等待和产出职责；文件头与README为GPL-2.0-or-later/GPL v2+。
+
+FLARE已读路径的货币是库存物品，卖货收入没有从有限商人账户扣除；部分库存失败使用drop/补偿而非全事务回滚，Craft页面也不是本版商店有时长的库存生产。故只参考其价格/目录/库存职责，没有移植上述源码或原游戏数据。独立账户、精确库存分档总价、周期日历、营业表和本项目跨模块原子交易不能冒称上游现成实现。实际生产、库存、种植与宿主事务直接复用本仓库已有模块。
+
+本批未增加依赖，未复制或翻译来源代码、素材和成套数值。源码研究原件保留在本地研究缓存，发布包不包含这些外部文件。12个固定源码/许可文件的读取范围、函数边界及差异见 [经营源码研究](docs/settlement-source-research.md)；这里记录研究来源许可，不构成对未来复制代码的重新授权。
+
 ## 主项目发布许可
 
 主工程目前是用户的独立开发工程，package.json 标记 private / UNLICENSED；尚未替用户选择对外开源许可。此标记不改变上面第三方依赖的许可。后续确实移植其他来源的源码时，要按具体文件重新记录组合和分发条件。

@@ -1,10 +1,10 @@
 # 模块化文字世界
 
-**0.8.0-alpha.1 · 模块化队伍、伙伴与多目标战斗**
+**0.9.0-alpha.1 · 模块化城镇经营、有限交易与双工坊**
 
 这是独立的文字世界项目，与词条无限组合游戏分开。全部现有和未来系统、规则、内容、数据、表现与操作都按模块组织。仓库中的经营、战棋和叙事只是架构验证样例，不限制未来玩法。
 
-当前版本 **0.8.0-alpha.1**，包含模块宿主、53 个内置模块定义、14 个世界配置和一个从外部文件加载的作者模块。同行者把持久伙伴、出战名单、多目标战斗、行动顺序与敌方目标策略接入已有装备、技能、生产、任务、成长和交易。领队、伙伴、敌人各自保留唯一生命来源，恢复用品可以选择具体队员；规则、内容、状态与文字视图分别装配。作者可发现模块、复制世界、用标准 JSON Patch 修改装配、校验后导出并运行。正式游戏 UI 和更丰富的玩法仍在继续开发。
+当前版本 **0.9.0-alpha.1**，包含模块宿主、63 个内置模块定义、16 个世界配置和一个从外部文件加载的作者模块。新河岸城镇把独立账户、有限商店库存、可替换价格、日历与营业时段接到已有种植、双工坊和重复订单，形成无需战斗或经验系统的经营循环。钱在钱包、货在库存、制作在工坊、时间在时钟，各自只有一个状态来源。已有伙伴队伍、装备技能、战棋、叙事和探索世界继续可用。作者可发现模块、复制世界、用标准 JSON Patch 修改装配、校验后导出并运行。正式游戏 UI 和更丰富的玩法仍在继续开发。
 
 源码仓库：[Night-SHANG/wenzi](https://github.com/Night-SHANG/wenzi)。当前 CI：[Modular runtime checks](https://github.com/Night-SHANG/wenzi/actions/workflows/preflight.yml)。仓库公开不代表主项目已选择开源授权协议；依赖许可见 `THIRD_PARTY.md`。
 
@@ -31,6 +31,8 @@ node dist/cli/index.js demo frontier
 node dist/cli/index.js demo campaign
 node dist/cli/index.js demo loadout
 node dist/cli/index.js demo party
+node dist/cli/index.js demo settlement
+node dist/cli/index.js play settlement
 node dist/cli/index.js play party
 node dist/cli/index.js play loadout
 node dist/cli/index.js play campaign
@@ -88,6 +90,8 @@ JSON Patch 支持 `add/remove/replace/move/copy/test`。建议在按数组位置
 | loadout-continuous | 同一装备技能世界按模拟秒推进 | 活动战斗、装备、效果、冷却同时保存后更换时钟 |
 | party | 伙伴招募/编组/持久生命、多个目标、行动顺序、敌方策略、队员恢复，与装备任务世界组合 | 完整63动作；回合队列/独占会话/奖励事务，倒下后由其他伙伴继续 |
 | party-continuous | 同一队伍冒险按模拟秒推进 | 领队技能、队列和伙伴生命同时保存后换钟；规则替换不改当前队列 |
+| settlement | 有限双方资金、真实商店库存、可换定价与营业时段、种植、两座工坊、零经验重复订单 | 两轮32动作，生产补货、钱货守恒、容量失败整笔回滚；独立纯经营世界 |
+| settlement-continuous | 同一河岸城镇按模拟秒推进 | 活动种植、两个已付订单、任务与账户一起读档换钟；改营业时间不冻结生产 |
 
 示例数值是作者测试配置，未进行正式平衡。连续时间模块接收显式秒数，尚未绑定真实帧循环。战棋双方可手动操作，尚无 AI、寻路或地形效果。
 
@@ -100,6 +104,8 @@ JSON Patch 支持 `add/remove/replace/move/copy/test`。建议在按数组位置
 队伍路线见 [docs/party.md](docs/party.md)。`demo party` 执行63个动作：招募米拉与林、换出受伤后备、两场狼群、双目标守卫战、领队技能与伙伴攻击、药剂恢复及任务交付。最终经验105、等级3、金币16、模拟时间90秒；领队20/34、米拉14/18、林14/14。林曾在守卫战倒下，其他队员继续取胜，回镇后用真实奖励药剂恢复。行动顺序可换成速度排序，敌人目标可换成按名单首位；已保存当前回合不被重排。旧决斗与格战仍独立可用。
 
 ## 实际操作一轮
+
+最新经营路线见 [docs/settlement.md](docs/settlement.md)。`demo settlement` 自动完成两轮“买种—种植—卖回一份作物—双工坊制作—交餐食订单”，再跨过休息日等待重新开门。最终模拟时间190秒，玩家2币、商店4币，总货币仍6；商店重新备好1份种子，玩家得到2份订单凭证。补货实际消耗卖回商店的作物，开门、查询和读档不会生成钱货。没有任何成长、生命或战斗依赖，三层文字视图也可整体移除后继续操作。
 
 运行 `node dist/cli/index.js play farm` 后，逐行输入：
 
@@ -172,6 +178,6 @@ node dist/cli/index.js demo examples/custom-world.json --plugin examples/custom-
 
 正式浏览器视觉界面、可视化模组编辑器、模块下载与分发、不可信代码隔离、服务器权限模型、跨服事务、联机/MMORPG、实时枪战、空间流式加载与大规模性能验证，都还没有实现。当前保存文件没有加密签名；它是本地作者数据格式，不是反作弊机制。技术验证不证明长期玩法乐趣或产品完成。
 
-成熟游戏的具体源码研究已保留。生产职责参考 Widelands；经验资格和溢出职责参考 Wesnoth；任务和效果生命周期参考 CDDA；装备标签、技能条件与独立冷却核对 FLARE；持久队伍、上场单位与行动队列核对 Tuxemon。规则适配为本项目独立实现，当前没有复制这些游戏的代码、素材或成套数值。核心基础校验直接复用 Ajv、semver，世界修改复用 fast-json-patch。具体固定来源、差异和采用范围见 [THIRD_PARTY.md](THIRD_PARTY.md)。
+成熟游戏的具体源码研究已保留。生产职责参考 Widelands；经验资格和溢出职责参考 Wesnoth；任务和效果生命周期参考 CDDA；装备标签、技能条件、冷却及商店实际调用核对 FLARE；持久队伍、上场单位与行动队列核对 Tuxemon。FLARE 的已读路径没有提供本版有限商人现金和跨模块原子交易，独立账户、库存分档价和营业日历由本项目按公开契约实现。当前没有复制这些游戏的代码、素材或成套数值；库存、制作和种植直接复用已有模块。核心基础校验复用 Ajv、semver，世界修改复用 fast-json-patch。具体固定来源、差异和采用范围见 [THIRD_PARTY.md](THIRD_PARTY.md)。
 
-本地实际检查结果在 `artifacts/`，工程包包含 `verification/`。历史 v0.4 提交 `f86be17` 的 [Actions run 42246209860](https://github.com/Night-SHANG/wenzi/actions/runs/42246209860) 已在 Linux 和 Windows 通过；后续新 CI 未查询，不能沿用旧结果。当前进度见 [docs/party-progress.md](docs/party-progress.md)，设计与执行记录见 `docs/`。
+本地实际检查结果在 `artifacts/`，工程包包含 `verification/`。历史 v0.4 提交 `f86be17` 的 [Actions run 42246209860](https://github.com/Night-SHANG/wenzi/actions/runs/42246209860) 已在 Linux 和 Windows 通过；后续新 CI 未查询，不能沿用旧结果。当前进度见 [docs/settlement-progress.md](docs/settlement-progress.md)，设计与执行记录见 `docs/`。
