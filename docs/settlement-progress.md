@@ -18,7 +18,7 @@
 
 分工focused：账户/目录/定价14项；日历/营业13项；有限交易28项；Root零经验任务与视图12项；经营世界集成9项，均通过。兼容任务与旧party组合首次33/34，唯一失败为旧测试仍期待journal1.1；改为当前1.2后该测试实际1/1通过。世界集成首次装配8/9，失败为测试漏写视图明确给出的batches1；修正测试后9/9。初始RED有部分为缺少模块/世界的导入装配失败，报告未冒称全部都是行为断言RED。
 
-账户、日历、交易和Root消费者/视图四个独立范围审查均规格符合、质量通过，无Critical/Important/Minor。跨任务的闭店与已付订单、真实双工坊操作已由真实组合测试覆盖。最终全量Preflight于2026-11-07 13:49:13北京时间通过6/6，459/459测试、严格类型与16个世界实际运行/恢复通过；构建退出0，33/33组compiled smoke于13:50:11通过，保留原28组并加入两世界及三个作者/交互组。npm有既有http-proxy环境提示，未构成失败。fresh整分支审查及归档交付在此之后进行，源代码门禁不代称已完成外部发布。
+账户、日历、交易和Root消费者/视图四个独立范围审查均规格符合、质量通过，无Critical/Important/Minor。跨任务的闭店与已付订单、真实双工坊操作已由真实组合测试覆盖。首轮459项测试与33组编译运行通过后，fresh整分支审查发现I1：连续时间包误用了不同world ID，导致真实CLI swap失败；旧测试只改了源配置的clock，未读取随包目标。原实现者先复现WORLD_ID_MISMATCH行为RED，改正新世界ID，并加入实际step→continuous→step及保存/恢复后的六次CLI换装。9/9 focused与窄编译诊断通过，独立范围复审关闭唯一Important，无新问题。修复后完整Preflight于2026-11-07T14:03:33+08:00实际6/6、459/459测试与16world运行/恢复通过；build退出0，compiled smoke于2026-11-07T14:04:29+08:00实际33/33通过。新双指纹与旧记录均保留，旧成功不冒充已覆盖I1。npm既有http-proxy提示不构成失败。归档与外部发布随后执行，准确身份以专题13为准。
 
 ## 来源与边界
 
@@ -29,3 +29,5 @@
 玩法及操作见 [河岸城镇](settlement.md)，接口见 [设计契约](superpowers/specs/2026-11-07-settlement-design.md)，裁定和执行历史见 [台账](tasks/settlement-decisions.md)。最终发布哈希、源码到远端映射与归档校验值保存在Notion当前专题及包外验证记录，避免把包自身身份写回源码形成循环。
 
 外部发布身份与工程包核验的当前记录：[专题13｜城镇经营](https://app.notion.com/p/411fbd029cd2810d8508ec8ba168b4a4)。
+
+整批审查原发现见 [final review](tasks/settlement-final-review.md)，唯一修复的独立闭环见 [scoped re-review](tasks/settlement-final-fix-review.md)。无当前Critical/Important；保留未修改的旧群战测试长行Minor。

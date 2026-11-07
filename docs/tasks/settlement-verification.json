@@ -3,7 +3,7 @@
   "timezone": "Asia/Shanghai",
   "behaviorTests": 459,
   "preflight": {
-    "timestamp": "2026-11-07T05:49:13.186Z",
+    "timestamp": "2026-11-07T06:03:33.410Z",
     "node": "24.22.1",
     "ok": true,
     "status": "passed",
@@ -21,32 +21,32 @@
       {
         "name": "宿主不依赖玩法或平台实现",
         "ok": true,
-        "ms": 42
+        "ms": 49
       },
       {
         "name": "TypeScript 严格类型检查",
         "ok": true,
-        "ms": 1805
+        "ms": 1781
       },
       {
         "name": "自动行为测试",
         "ok": true,
-        "ms": 97524
+        "ms": 100198
       },
       {
         "name": "全部世界实际运行与恢复",
         "ok": true,
-        "ms": 2651
+        "ms": 2914
       }
     ],
     "fingerprint": {
       "version": 1,
       "scope": "preflight",
-      "sha256": "fd5736ce545b76b5902a21a8bb258d72c1d0999281c0129300b8c702d19b8c29"
+      "sha256": "55dbd57a70c3e642d9e824a73f75f0b5ecf74e0c375f51fff000ce0d942a8422"
     }
   },
   "builtSmoke": {
-    "timestamp": "2026-11-07T05:50:11.750Z",
+    "timestamp": "2026-11-07T06:04:29.114Z",
     "node": "24.22.1",
     "ok": true,
     "status": "passed",
@@ -253,8 +253,265 @@
     "fingerprint": {
       "version": 1,
       "scope": "built-smoke",
-      "sha256": "b74808422e71881d69ab1dfff81add6f3acdf095cf53e385612bc92b0557d23d"
+      "sha256": "e794eee9248de2649e37cfda7f958dad4dc08a7ea2bef3f0f379775d9e9a6a9a"
     }
   },
-  "buildExit": 0
+  "buildExit": 0,
+  "initialPassingGatesBeforeI1": {
+    "preflight": {
+      "timestamp": "2026-11-07T05:49:13.186Z",
+      "node": "24.22.1",
+      "ok": true,
+      "status": "passed",
+      "checks": [
+        {
+          "name": "运行时与固定依赖",
+          "ok": true,
+          "ms": 0
+        },
+        {
+          "name": "世界数据与项目文件",
+          "ok": true,
+          "ms": 2
+        },
+        {
+          "name": "宿主不依赖玩法或平台实现",
+          "ok": true,
+          "ms": 42
+        },
+        {
+          "name": "TypeScript 严格类型检查",
+          "ok": true,
+          "ms": 1805
+        },
+        {
+          "name": "自动行为测试",
+          "ok": true,
+          "ms": 97524
+        },
+        {
+          "name": "全部世界实际运行与恢复",
+          "ok": true,
+          "ms": 2651
+        }
+      ],
+      "fingerprint": {
+        "version": 1,
+        "scope": "preflight",
+        "sha256": "fd5736ce545b76b5902a21a8bb258d72c1d0999281c0129300b8c702d19b8c29"
+      }
+    },
+    "builtSmoke": {
+      "timestamp": "2026-11-07T05:50:11.750Z",
+      "node": "24.22.1",
+      "ok": true,
+      "status": "passed",
+      "results": [
+        {
+          "world": "campaign",
+          "actions": 46,
+          "revision": 46,
+          "ok": true
+        },
+        {
+          "world": "campaign-continuous",
+          "actions": 46,
+          "revision": 46,
+          "ok": true
+        },
+        {
+          "world": "farm",
+          "actions": 4,
+          "revision": 4,
+          "ok": true
+        },
+        {
+          "world": "farm-continuous",
+          "actions": 4,
+          "revision": 4,
+          "ok": true
+        },
+        {
+          "world": "farm-greenhouse",
+          "actions": 4,
+          "revision": 4,
+          "ok": true
+        },
+        {
+          "world": "farm-physical",
+          "actions": 4,
+          "revision": 4,
+          "ok": true
+        },
+        {
+          "world": "frontier",
+          "actions": 16,
+          "revision": 16,
+          "ok": true
+        },
+        {
+          "world": "frontier-continuous",
+          "actions": 16,
+          "revision": 16,
+          "ok": true
+        },
+        {
+          "world": "loadout",
+          "actions": 48,
+          "revision": 48,
+          "ok": true
+        },
+        {
+          "world": "loadout-continuous",
+          "actions": 48,
+          "revision": 48,
+          "ok": true
+        },
+        {
+          "world": "party",
+          "actions": 63,
+          "revision": 63,
+          "ok": true
+        },
+        {
+          "world": "party-continuous",
+          "actions": 63,
+          "revision": 63,
+          "ok": true
+        },
+        {
+          "world": "settlement",
+          "actions": 32,
+          "revision": 32,
+          "ok": true
+        },
+        {
+          "world": "settlement-continuous",
+          "actions": 32,
+          "revision": 32,
+          "ok": true
+        },
+        {
+          "world": "story",
+          "actions": 2,
+          "revision": 2,
+          "ok": true
+        },
+        {
+          "world": "tactics",
+          "actions": 6,
+          "revision": 6,
+          "ok": true
+        },
+        {
+          "world": "external-author-module",
+          "actions": 2,
+          "revision": 2,
+          "ok": true
+        },
+        {
+          "world": "authored-farm",
+          "actions": 4,
+          "revision": 4,
+          "ok": true
+        },
+        {
+          "world": "authored-external-module",
+          "actions": 2,
+          "revision": 2,
+          "ok": true
+        },
+        {
+          "world": "authored-frontier",
+          "actions": 16,
+          "revision": 16,
+          "ok": true
+        },
+        {
+          "world": "interactive-frontier-save-load",
+          "actions": 18,
+          "revision": 16,
+          "ok": true
+        },
+        {
+          "world": "authored-campaign",
+          "actions": 46,
+          "revision": 46,
+          "ok": true
+        },
+        {
+          "world": "interactive-campaign-save-load",
+          "actions": 48,
+          "revision": 46,
+          "ok": true
+        },
+        {
+          "world": "interactive-campaign-arbitrary-ids",
+          "actions": 46,
+          "revision": 46,
+          "ok": true
+        },
+        {
+          "world": "authored-loadout",
+          "actions": 48,
+          "revision": 48,
+          "ok": true
+        },
+        {
+          "world": "interactive-loadout-active-save-load",
+          "actions": 71,
+          "revision": 48,
+          "ok": true
+        },
+        {
+          "world": "interactive-loadout-arbitrary-ids",
+          "actions": 48,
+          "revision": 48,
+          "ok": true
+        },
+        {
+          "world": "authored-party",
+          "actions": 63,
+          "revision": 63,
+          "ok": true
+        },
+        {
+          "world": "interactive-party-active-save-load",
+          "actions": 99,
+          "revision": 63,
+          "ok": true
+        },
+        {
+          "world": "interactive-party-arbitrary-ids",
+          "actions": 63,
+          "revision": 63,
+          "ok": true
+        },
+        {
+          "world": "authored-settlement",
+          "actions": 32,
+          "revision": 32,
+          "ok": true
+        },
+        {
+          "world": "interactive-settlement-active-save-load",
+          "actions": 54,
+          "revision": 33,
+          "ok": true
+        },
+        {
+          "world": "interactive-settlement-arbitrary-ids",
+          "actions": 32,
+          "revision": 32,
+          "ok": true
+        }
+      ],
+      "fingerprint": {
+        "version": 1,
+        "scope": "built-smoke",
+        "sha256": "b74808422e71881d69ab1dfff81add6f3acdf095cf53e385612bc92b0557d23d"
+      }
+    },
+    "limitation": "Did not exercise actual shipped-package swaps; I1 discovered by final review and fixed before the final evidence above."
+  }
 }

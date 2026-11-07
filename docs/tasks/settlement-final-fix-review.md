@@ -1,0 +1,13 @@
+# v0.9 I1 scoped re-review
+
+Reviewer: review_settlement_fix_v09. Range: `6bb6fb5fd20ac45a30288a8046cd869733402752..1482db6091f43c243bd9df97b88383e446cbe803`. 2026-11-07, Beijing (UTC+08).
+
+- **I1 Important — shipped continuous package identity prevents the documented clock swap — ADDRESSED.** `worlds/settlement-continuous.json:4` now declares `world.settlement`, matching the step package without changing the host identity guard. `tests/settlement-world.test.ts:111` replaces the synthetic clock mutation with actual loaded step and continuous packages. At t30 it switches to the shipped continuous definition, compares all21 module states, advances to t40 using the continuous demo command, switches back to the shipped step definition, and again compares all module states (`tests/settlement-world.test.ts:128`, `:134`, `:141`, `:145`). The active crop, both paid jobs, delivery, inventory and funds survive, and continuation matches every module state of the direct step run at t190 (`:152`).
+
+- **I1 compiled CLI regression — ADDRESSED.** The existing active save/load group executes six actual named package swaps, including continuous→step reversal during active production and the same round trip after loading the original checkpoint (`scripts/smoke-built.mjs:341`, `:344`, `:347`, `:350`, `:352`, `:354`). Assertions verify successful swap output, actual clock definition identities, t30 state preservation, t40 jobs/task/funds/inventory/crop preservation, the fixed t190 economic result, and complete equality between final and resumed snapshots (`:374`, `:384`, `:408`). The change amends the existing group without removing or adding groups; original demo data and other smoke groups are unchanged in the fix diff.
+
+- **Evidence check — consistent with the diff.** The appended report identifies the actual-package regression command and records a pre-fix WORLD_ID_MISMATCH failure at the active checkpoint, followed by focused9/9 and smoke-script syntax success. It includes the exact isolated compiled-group command and successful JSON output:54 actions, revision33, with code requiring six successful swaps. These are implementer-reported executions; no tests, build, full smoke or Git commands were rerun by this read-only reviewer. Earlier459/33 evidence is explicitly historical; final full validation remains Root's gate.
+
+- **New breakage in the fix diff — None.** No new Critical, Important or Minor finding.
+- **Out-of-Scope Observations — None.** Historical party-test structure and unchanged implementation were not reopened.
+- **Fix round: All findings addressed, no new Critical/Important breakage.** No open findings remain from this scoped re-review.
