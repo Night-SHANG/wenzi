@@ -161,3 +161,24 @@ export const example: ModuleDefinition = {
 先记录实际来源提交、文件和许可；识别输入、输出、单位、状态归属与原引擎依赖。能保留的实现放在适配器之后，耦合部分拆成显式能力。复制或移植源码的来源与许可必须保留，不因加上模块接口而改变。
 
 至少准备：来源样例输入输出、拒绝和边界场景、保存恢复、与其他模块组合、替换实现后的语义对照。数值必须连同公式、时间尺度和资源循环迁移；一个成熟游戏的数字不直接构成另一个世界的平衡结论。
+
+
+## v0.8 队伍、目标和兼容来源
+
+新世界 `party` / `party-continuous` 使用同一 `world.party` 身份、35个实例与63个示范动作。`party.roster` 只保存伙伴冻结条款、生命和出战名单，领队继续读原 `vitals.pool` / `attributes.additive`。`vitals.party-member` 只保存恢复对象，现有 `recovery.items` 原样支付物品并治疗选中队员。创建装配时必须把 party 的 vitals 显式绑定原领队生命池，把 recovery 的 vitals 绑定队员选择适配器，避免循环或歧义。
+
+```bash
+node dist/cli/index.js describe party.roster --json
+node dist/cli/index.js describe battles.party --json
+node dist/cli/index.js fork party --id author.my-party --out my-party.json
+node dist/cli/index.js validate my-party.json --run-demo --json
+node dist/cli/index.js play my-party.json
+```
+
+`initiative.listed` 与 `initiative.speed`、`targeting.first` 与 `targeting.lowest-hp` 各自是独立能力。策略支持准确空状态迁移；换顺序只影响下一回合，换目标策略影响下次敌人行动。改顺序可能需要同时改 demo 中的 actor；validate --run-demo 会实际执行，错误的行动者会拒绝，而非替作者偷偷改脚本。世界 JSON 仅携带配置，不会下载或执行新代码。
+
+群战没有假装提供旧 `encounters` 的单敌字段。它提供 `party-battle`、`combat-action` 和 `encounter-records`。skills1.1 增加可选 `battleSource`（auto/encounters/combat-action）；quests1.1 增加可选 `victorySource`（auto/encounters/encounter-records）。默认auto仅接受唯一来源；两者同时可用时要显式选协议，再通过 bindings 选准确实例。不同技能或任务日志可以使用不同来源；不把同名遭遇的胜场自动相加。
+
+旧 skills1.0 的冷却、quests1.0 的接取基线与完成记录均有准确身份迁移；loadout文字视图1.1仅接受原1.0的空状态；duel1.2接受本定义1.0/1.1的stateVersion1。未知版本不清空、不猜测。旧世界不包含新能力，继续使用原行为。新能力详细输入/输出、技能targets逐行数据、冻结状态与失败语义见 [队伍设计](superpowers/specs/2026-11-07-party-design.md)。
+
+同一组角色的 party、battles.party、可选 encounters.duel 必须明确共享一个 `battle-session.exclusive`。所有非空战斗阶段，包括胜利待领取和失败，都持有会话；错误释放会被战斗不变量拒绝并回滚。不同角色可以用不同会话，宿主不猜测作者是否错误地让两个会话共享同一生命池。向活动旧战斗增加空会话会拒绝；先结束再装配。移除持锁控制器前先完成/撤退；已经明确移除留下的孤立owner只能显式 release，不自动丢弃。

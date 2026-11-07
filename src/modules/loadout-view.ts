@@ -50,12 +50,17 @@ const requirement = { version: '^1.0.0' };
 /** Presentation only: providers retain equipment, effect, attribute and skill authority. */
 export const loadoutViewModule: ModuleDefinition = {
   manifest: {
-    id: 'view.loadout.text', title: '装备与技艺文字视图', version: '1.0.0', apiVersion: 1, stateVersion: 1,
+    id: 'view.loadout.text', title: '装备与技艺文字视图', version: '1.1.0', apiVersion: 1, stateVersion: 1,
     provides: { 'text-view': '1.0.0' },
     requires: { 'text-view': requirement, equipment: requirement, effects: requirement, attributes: requirement, skills: requirement },
   },
   configSchema: objectSchema({ title: { type: 'string', minLength: 1 } }),
   stateSchema: emptySchema, initialState: () => ({}),
+  migrate(previous) {
+    if (previous.moduleId !== 'view.loadout.text' || previous.version !== '1.0.0' || previous.stateVersion !== 1
+      || !previous.state || typeof previous.state !== 'object' || Array.isArray(previous.state) || Object.keys(previous.state).length) throw new Error('不兼容的装备文字视图状态');
+    return previous.state;
+  },
   queries: { render: { schema: emptySchema, execute(ctx) {
     const baseView = object(ctx, ctx.query('text-view', 'render'), '基础视图');
     text(ctx, baseView.title, '基础视图标题');
@@ -106,7 +111,17 @@ export const loadoutViewModule: ModuleDefinition = {
       const cooldown = safeNumber(ctx, skill.cooldownSeconds as number, '技能冷却');
       const effect = skill.effect === null ? '无' : id(ctx, skill.effect);
       lines.push(`技能：${text(ctx, skill.name, '技能名称')}；等级 ${level}；装备标签 ${tags.join('、') || '无'}；消耗 ${cost}；攻击 +${bonus}；状态 ${effect}；冷却 ${cooldown} 秒（剩余 ${remaining} 秒）`);
-      lines.push(`${available ? '可以施展' : reasons.join('；')}；${boundActionCommand(ctx, 'skills', 'use', { skill: skill.id! })}`);
+      if (Object.hasOwn(skill, 'targets')) {
+        const targets = rows(ctx, skill.targets, '技能目标');
+        for (const target of targets) {
+          const hp = safeCount(ctx, target.hp as number, '目标生命'), maxHp = safeCount(ctx, target.maxHp as number, '目标生命上限');
+          if (!hp || !maxHp || hp > maxHp) ctx.fail('INVALID_VIEW_DATA', '技能目标必须存活且生命不超过上限');
+          text(ctx, target.name, '目标名称');
+        }
+        if (available && !targets.length) ctx.fail('INVALID_VIEW_DATA', '可用技能缺少有效目标');
+        lines.push(available ? '可以施展；请选择具体目标。' : reasons.join('；'));
+        if (available) for (const target of targets) lines.push(`对${target.name}施展：${boundActionCommand(ctx, 'skills', 'use', { skill: skill.id!, target: target.id! })}`);
+      } else lines.push(`${available ? '可以施展' : reasons.join('；')}；${boundActionCommand(ctx, 'skills', 'use', { skill: skill.id! })}`);
     }
     lines.push('时间规则：技能与普通攻击不自动推进时间；通过基础视图的时钟操作推进模拟秒，冷却和效果随之变化。');
     return { title: ctx.config.title!, lines };

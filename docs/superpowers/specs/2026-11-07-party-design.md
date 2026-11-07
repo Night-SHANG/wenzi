@@ -44,7 +44,7 @@
 
 `recruit({member})` 空闲时从当前目录冻结完整伙伴条款，以满生命加入后备，只能招募一次。`setActive({members:string[]})` 空闲时选择已招募、不重复且不超容量的伙伴，保留给定顺序；空数组有效。两命令返回 status。战斗会话被占用时禁止这两种名单变更，即使 pending victory/defeat；不限制正常生命恢复。
 
-`status({})->{leader:string,capacity:number,active:string[],members:PartyMember[]}`。active 始终 `[leader,...state.active]`。成员列表先领队，再当前目录与已招募伙伴并集，每 ID 只出现一次。`PartyMember={id,name,maxHp,hp,attack,defense,speed,isLeader:boolean,recruited:boolean,active:boolean}`。领队 hp/maxHp 查询原 vitals，attack/defense 优先 attributes.values，否则 progression.values；不复制这些状态。领队 recruited/active 永远 true。未招募目录项 hp=0,recruited/active=false（明确不是可战斗伙伴）。已招募项使用冻结条款与持续 hp，目录删除也保留。`member({member})->PartyMember` 与 status 同一事实，未知 ID 拒绝。
+`status({})->{leader:string,capacity:number,active:string[],members:PartyMember[]}`。active 始终 `[leader,...state.active]`。成员列表先领队，再当前目录与已招募伙伴并集，每 ID 只出现一次。`PartyMember={id,name,maxHp,hp,attack,defense,speed,isLeader:boolean,recruited:boolean,active:boolean}`。领队 hp/maxHp 查询原 vitals，attack/defense 为非负安全整数（attack可为0，由combat-rule决定伤害），优先 attributes.values，否则 progression.values；不复制这些状态。领队 recruited/active 永远 true。未招募目录项 hp=0,recruited/active=false（明确不是可战斗伙伴）。已招募项使用冻结条款与持续 hp，目录删除也保留。`member({member})->PartyMember` 与 status 同一事实，未知 ID 拒绝。
 
 `damage({member,amount>0})` / `heal({member,amount>0})->{id,hp,maxHp}`：只接受领队或已招募伙伴。领队委托原 vitals，检查前后与返回；伙伴仅修改自身 hp，伤害下限0，恢复上限maxHp，满血恢复拒绝。冻结伙伴允许战后继续受伤、换到后备与再次出战，不重新满血。不得提供释放后重招免费恢复通道。
 
@@ -107,7 +107,7 @@ Root 修改 skills.combat→1.1.0（skills cap1.1.0）。旧 encounters^1.1.0 �
 
 quests.journal→1.1.0（quests cap1.0.0），增加 optional encounter-records，config 增加可选 victorySource（auto / encounters / encounter-records，默认auto），需要胜场时 auto 只选择唯一来源，两者存在则拒绝；显式选择必须绑定对应来源；其余接取/基线/领奖完全不变。准确旧1.0.0/stateVersion1迁移。明确一份任务日志绑定一个战绩来源，不合并或猜测同名 ID。
 
-view.party.text→partyViewModule，纯文字组合 view.frontier.text。requires text-view/party/party-battle/progression/quests/recovery/vitals-selection。显示已招募/后备/出战、所有真实生命、当前行动者、回合与目标、自动敌人动作提示、任务、冷却、恢复对象与 select→use 操作。所有提示由 boundActionCommand 按真实实例 ID 生成，外部返回按实际消费字段验证，不硬编码实例名。view.loadout.text→1.1.0，显式旧空状态迁移，新技能 targets 在逐目标提示中带入，旧世界提示保持。
+view.party.text→partyViewModule，纯文字组合 view.frontier.text。requires text-view/party/party-battle/progression/quests/recovery/vitals-selection，optional battle-session用于展示其他控制器占用。显示已招募/后备/出战、所有真实生命、当前行动者、回合与目标、自动敌人动作提示、任务、冷却、恢复对象与 select→use 操作。所有提示由 boundActionCommand 按真实实例 ID 生成，外部返回按实际消费字段验证，不硬编码实例名。view.loadout.text→1.1.0，显式旧空状态迁移，新技能 targets 在逐目标提示中带入，旧世界提示保持。
 
 新增 worlds/party.json 和 party-continuous.json，共享 world.party 身份和相同动作语义，仅时钟类型/advance 参数不同。复用 loadout 的实际生产任务基础，删旧遭遇目录/旧决斗/campaign视图，加入9实例（会话、伙伴目录、队伍、生命选择适配、群敌目录、行动顺序、选目标、队伍战斗、队伍视图）；loadout视图组合队伍视图。预计35实例、53内置定义、14世界；以实际目录核验为准。恢复只保留一个 recovery.items，绑定队员生命适配器，party 的领队 vitals 显式绑定原生命池。
 

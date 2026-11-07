@@ -1,0 +1,1274 @@
+{
+  "format": 1,
+  "world": {
+    "id": "world.party",
+    "title": "同行者 · 队伍冒险",
+    "version": "1.0.0",
+    "description": "招募伙伴、编组、选择群敌目标，以独立顺序与目标策略继续探索生产任务。",
+    "entryView": {
+      "instance": "loadout-view",
+      "query": "render"
+    },
+    "modules": [
+      {
+        "id": "capacity",
+        "module": "capacity.slots",
+        "config": {}
+      },
+      {
+        "id": "inventory",
+        "module": "inventory.basic",
+        "config": {
+          "items": {
+            "wood": {
+              "name": "木料",
+              "weight": 500,
+              "volume": 700,
+              "length": 600
+            },
+            "stone": {
+              "name": "石料",
+              "weight": 1000,
+              "volume": 400,
+              "length": 100
+            },
+            "reed": {
+              "name": "芦苇",
+              "weight": 20,
+              "volume": 50,
+              "length": 700
+            },
+            "plank": {
+              "name": "木板",
+              "weight": 400,
+              "volume": 500,
+              "length": 600
+            },
+            "toolkit": {
+              "name": "工具包",
+              "weight": 1500,
+              "volume": 1300,
+              "length": 350
+            },
+            "tonic": {
+              "name": "草药剂",
+              "weight": 100,
+              "volume": 100,
+              "length": 100
+            },
+            "pelt": {
+              "name": "狼皮",
+              "weight": 100,
+              "volume": 100,
+              "length": 100
+            },
+            "ore": {
+              "name": "矿石",
+              "weight": 100,
+              "volume": 100,
+              "length": 100
+            },
+            "badge": {
+              "name": "巡林徽记",
+              "weight": 100,
+              "volume": 100,
+              "length": 100
+            },
+            "medal": {
+              "name": "守卫勋章",
+              "weight": 100,
+              "volume": 100,
+              "length": 100
+            },
+            "sword": {
+              "name": "训练剑",
+              "weight": 700,
+              "volume": 500,
+              "length": 800
+            },
+            "knife": {
+              "name": "猎刀",
+              "weight": 300,
+              "volume": 200,
+              "length": 300
+            },
+            "armor": {
+              "name": "皮甲",
+              "weight": 1500,
+              "volume": 2000,
+              "length": 600
+            },
+            "spark": {
+              "name": "火花石",
+              "weight": 10,
+              "volume": 10,
+              "length": 20
+            }
+          },
+          "containers": {
+            "player": {
+              "limits": {
+                "slots": 10,
+                "maxWeight": 20000,
+                "maxVolume": 30000,
+                "maxLength": 1000
+              },
+              "items": {
+                "sword": 1,
+                "knife": 1,
+                "armor": 1,
+                "spark": 3
+              }
+            }
+          }
+        },
+        "bindings": {
+          "capacity": "capacity"
+        }
+      },
+      {
+        "id": "clock",
+        "module": "time.step",
+        "config": {
+          "secondsPerStep": 10
+        }
+      },
+      {
+        "id": "location",
+        "module": "location.nodes",
+        "config": {
+          "start": "town",
+          "nodes": {
+            "town": {
+              "name": "镇口工坊",
+              "description": "工坊与收购摊位就在镇口。带回材料后，可以在这里制作并领取产品。",
+              "exits": [
+                "forest",
+                "quarry",
+                "river"
+              ]
+            },
+            "forest": {
+              "name": "林地",
+              "description": "沿着林间小路，可以收集可再生的木料。东侧的小径通往河滩。",
+              "exits": [
+                "town",
+                "river"
+              ]
+            },
+            "quarry": {
+              "name": "采石场",
+              "description": "浅层石料散落在路边，收集后需要等待新的材料补充。",
+              "exits": [
+                "town"
+              ]
+            },
+            "river": {
+              "name": "河滩",
+              "description": "水边生长着芦苇，可用作工具包的绑绳材料。",
+              "exits": [
+                "town",
+                "forest"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": "gather-rules",
+        "module": "gathering.rules",
+        "config": {
+          "rules": {
+            "wood": {
+              "name": "收集木料",
+              "item": "wood",
+              "quantity": 3,
+              "cooldownSeconds": 30
+            },
+            "stone": {
+              "name": "收集石料",
+              "item": "stone",
+              "quantity": 2,
+              "cooldownSeconds": 40
+            },
+            "reed": {
+              "name": "收割芦苇",
+              "item": "reed",
+              "quantity": 3,
+              "cooldownSeconds": 20
+            }
+          }
+        }
+      },
+      {
+        "id": "gathering",
+        "module": "gathering.cooldown",
+        "config": {
+          "container": "player",
+          "sites": {
+            "wood": {
+              "location": "forest",
+              "rule": "wood"
+            },
+            "stone": {
+              "location": "quarry",
+              "rule": "stone"
+            },
+            "reed": {
+              "location": "river",
+              "rule": "reed"
+            }
+          }
+        },
+        "bindings": {
+          "location": "location",
+          "gather-rule": "gather-rules",
+          "inventory": "inventory",
+          "time": "clock"
+        }
+      },
+      {
+        "id": "recipes",
+        "module": "recipes.catalog",
+        "config": {
+          "recipes": {
+            "plank": {
+              "name": "木板",
+              "inputs": {
+                "wood": 2
+              },
+              "outputs": {
+                "plank": 2
+              },
+              "durationSeconds": 20
+            },
+            "toolkit": {
+              "name": "工具包",
+              "inputs": {
+                "plank": 2,
+                "stone": 1,
+                "reed": 1
+              },
+              "outputs": {
+                "toolkit": 1
+              },
+              "durationSeconds": 30
+            },
+            "tonic": {
+              "name": "草药剂",
+              "inputs": {
+                "reed": 2
+              },
+              "outputs": {
+                "tonic": 1
+              },
+              "durationSeconds": 10
+            }
+          }
+        }
+      },
+      {
+        "id": "workshop",
+        "module": "crafting.single",
+        "config": {
+          "container": "player",
+          "locations": [
+            "town"
+          ]
+        },
+        "bindings": {
+          "inventory": "inventory",
+          "time": "clock",
+          "recipes": "recipes",
+          "location": "location"
+        }
+      },
+      {
+        "id": "market",
+        "module": "market.fixed",
+        "config": {
+          "container": "player",
+          "prices": {
+            "wood": 1,
+            "stone": 2,
+            "reed": 1,
+            "plank": 4,
+            "toolkit": 18,
+            "pelt": 3,
+            "ore": 5,
+            "badge": 20
+          },
+          "initialCoins": 0
+        },
+        "bindings": {
+          "inventory": "inventory"
+        }
+      },
+      {
+        "id": "view",
+        "module": "view.frontier.text",
+        "config": {
+          "title": "边境小镇：工坊与巡林",
+          "container": "player"
+        },
+        "bindings": {
+          "location": "location",
+          "gathering": "gathering",
+          "crafting": "workshop",
+          "recipes": "recipes",
+          "inventory": "inventory",
+          "market": "market",
+          "time": "clock"
+        }
+      },
+      {
+        "id": "progression-rules",
+        "module": "progression.curve",
+        "config": {
+          "levels": [
+            {
+              "experience": 0,
+              "values": {
+                "maxHp": 20,
+                "attack": 4,
+                "defense": 1
+              }
+            },
+            {
+              "experience": 20,
+              "values": {
+                "maxHp": 26,
+                "attack": 6,
+                "defense": 2
+              }
+            },
+            {
+              "experience": 60,
+              "values": {
+                "maxHp": 34,
+                "attack": 8,
+                "defense": 3
+              }
+            }
+          ]
+        }
+      },
+      {
+        "id": "progression",
+        "module": "progression.track",
+        "config": {
+          "initialExperience": 0
+        },
+        "bindings": {
+          "progression-rule": "progression-rules"
+        }
+      },
+      {
+        "id": "vitals",
+        "module": "vitals.pool",
+        "config": {
+          "initialHp": 20
+        },
+        "bindings": {
+          "progression": "progression"
+        }
+      },
+      {
+        "id": "recovery",
+        "module": "recovery.items",
+        "config": {
+          "container": "player",
+          "remedies": {
+            "tonic": {
+              "name": "饮用草药剂",
+              "item": "tonic",
+              "healing": 20,
+              "locations": [
+                "town"
+              ]
+            }
+          }
+        },
+        "bindings": {
+          "inventory": "inventory",
+          "vitals": "party-vitals",
+          "location": "location"
+        }
+      },
+      {
+        "id": "combat-rules",
+        "module": "combat.difference",
+        "config": {}
+      },
+      {
+        "id": "quest-rules",
+        "module": "quests.catalog",
+        "config": {
+          "quests": {
+            "supply": {
+              "name": "镇口补给",
+              "description": "工坊缺一套工具。收集材料并制作工具包，镇民会给你草药剂，帮助你走入林地。",
+              "prerequisites": [],
+              "delivery": {
+                "toolkit": 1
+              },
+              "victories": {},
+              "rewards": {
+                "tonic": 2
+              },
+              "experience": 10,
+              "locations": [
+                "town"
+              ],
+              "repeatable": true
+            },
+            "patrol": {
+              "name": "林地巡查",
+              "description": "接取后带队完成两次狼群遭遇并领取奖励，再回镇交付。历史战绩不替代这次巡查。",
+              "prerequisites": [
+                "supply"
+              ],
+              "delivery": {},
+              "victories": {
+                "wolves": 2
+              },
+              "rewards": {
+                "badge": 1
+              },
+              "experience": 20,
+              "locations": [
+                "town"
+              ],
+              "repeatable": true
+            },
+            "guard": {
+              "name": "守住采石场",
+              "description": "带领伙伴击退采石场的守卫和弓手。领取战利品后回镇交付，额外药剂可用于救起倒下队员。",
+              "prerequisites": [
+                "patrol"
+              ],
+              "delivery": {},
+              "victories": {
+                "raiders": 1
+              },
+              "rewards": {
+                "medal": 1,
+                "tonic": 1
+              },
+              "experience": 30,
+              "locations": [
+                "town"
+              ],
+              "repeatable": false
+            }
+          }
+        }
+      },
+      {
+        "id": "quests",
+        "module": "quests.journal",
+        "config": {
+          "container": "player",
+          "victorySource": "encounter-records"
+        },
+        "bindings": {
+          "quest-rule": "quest-rules",
+          "inventory": "inventory",
+          "progression": "progression",
+          "location": "location",
+          "encounter-records": "battles"
+        }
+      },
+      {
+        "id": "equipment-rules",
+        "module": "equipment.catalog",
+        "config": {
+          "items": {
+            "sword": {
+              "name": "训练剑",
+              "slot": "hand",
+              "modifiers": {
+                "attack": 2
+              },
+              "tags": [
+                "blade"
+              ]
+            },
+            "knife": {
+              "name": "猎刀",
+              "slot": "hand",
+              "modifiers": {
+                "attack": 1
+              },
+              "tags": [
+                "blade"
+              ]
+            },
+            "armor": {
+              "name": "皮甲",
+              "slot": "body",
+              "modifiers": {
+                "defense": 1
+              },
+              "tags": [
+                "armor"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": "equipment",
+        "module": "equipment.slots",
+        "config": {
+          "container": "player",
+          "slots": [
+            "hand",
+            "body"
+          ]
+        },
+        "bindings": {
+          "equipment-rule": "equipment-rules",
+          "inventory": "inventory"
+        }
+      },
+      {
+        "id": "effect-rules",
+        "module": "effects.catalog",
+        "config": {
+          "effects": {
+            "rally": {
+              "name": "振奋",
+              "durationSeconds": 20,
+              "modifiers": {
+                "attack": 2
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "effect-duration",
+        "module": "effect-duration.refresh",
+        "config": {}
+      },
+      {
+        "id": "effects",
+        "module": "effects.timed",
+        "config": {},
+        "bindings": {
+          "effect-rule": "effect-rules",
+          "effect-duration": "effect-duration",
+          "time": "clock"
+        }
+      },
+      {
+        "id": "attributes",
+        "module": "attributes.additive",
+        "config": {
+          "keys": [
+            "attack",
+            "defense"
+          ]
+        },
+        "bindings": {
+          "progression": "progression",
+          "equipment": "equipment",
+          "effects": "effects"
+        }
+      },
+      {
+        "id": "skill-rules",
+        "module": "skills.catalog",
+        "config": {
+          "skills": {
+            "cleave": {
+              "name": "破势",
+              "minLevel": 1,
+              "requiredTags": [
+                "blade"
+              ],
+              "costs": {
+                "spark": 1
+              },
+              "cooldownSeconds": 10,
+              "attackBonus": 3,
+              "effect": "rally"
+            },
+            "heavy": {
+              "name": "重击",
+              "minLevel": 2,
+              "requiredTags": [
+                "blade"
+              ],
+              "costs": {},
+              "cooldownSeconds": 10,
+              "attackBonus": 2,
+              "effect": null
+            }
+          }
+        }
+      },
+      {
+        "id": "skills",
+        "module": "skills.combat",
+        "config": {
+          "container": "player",
+          "known": [
+            "cleave",
+            "heavy"
+          ],
+          "battleSource": "combat-action"
+        },
+        "bindings": {
+          "skill-rule": "skill-rules",
+          "inventory": "inventory",
+          "progression": "progression",
+          "time": "clock",
+          "equipment": "equipment",
+          "effects": "effects",
+          "effect-rule": "effect-rules",
+          "combat-action": "battles"
+        }
+      },
+      {
+        "id": "loadout-view",
+        "module": "view.loadout.text",
+        "config": {
+          "title": "同行者 · 队伍、装备与技艺"
+        },
+        "bindings": {
+          "text-view": "party-view",
+          "equipment": "equipment",
+          "effects": "effects",
+          "attributes": "attributes",
+          "skills": "skills"
+        }
+      },
+      {
+        "id": "session",
+        "module": "battle-session.exclusive",
+        "config": {}
+      },
+      {
+        "id": "companions",
+        "module": "companions.catalog",
+        "config": {
+          "companions": {
+            "mira": {
+              "name": "米拉",
+              "maxHp": 18,
+              "attack": 5,
+              "defense": 2,
+              "speed": 5
+            },
+            "lin": {
+              "name": "林",
+              "maxHp": 14,
+              "attack": 6,
+              "defense": 0,
+              "speed": 8
+            }
+          }
+        }
+      },
+      {
+        "id": "party",
+        "module": "party.roster",
+        "config": {
+          "leader": {
+            "id": "hero",
+            "name": "行者",
+            "speed": 7
+          },
+          "capacity": 2
+        },
+        "bindings": {
+          "companion-rule": "companions",
+          "vitals": "vitals",
+          "progression": "progression",
+          "attributes": "attributes",
+          "battle-session": "session"
+        }
+      },
+      {
+        "id": "party-vitals",
+        "module": "vitals.party-member",
+        "config": {
+          "initialMember": "hero"
+        },
+        "bindings": {
+          "party": "party"
+        }
+      },
+      {
+        "id": "squad-rules",
+        "module": "squads.catalog",
+        "config": {
+          "encounters": {
+            "wolves": {
+              "name": "林地狼群",
+              "location": "forest",
+              "enemies": [
+                {
+                  "id": "fang",
+                  "name": "灰狼前锋",
+                  "maxHp": 12,
+                  "attack": 5,
+                  "defense": 0,
+                  "speed": 6
+                },
+                {
+                  "id": "howl",
+                  "name": "灰狼游击",
+                  "maxHp": 14,
+                  "attack": 4,
+                  "defense": 0,
+                  "speed": 4
+                }
+              ],
+              "loot": {
+                "pelt": 1
+              },
+              "experience": 10,
+              "cooldownSeconds": 10
+            },
+            "raiders": {
+              "name": "采石场袭击队",
+              "location": "quarry",
+              "enemies": [
+                {
+                  "id": "guard",
+                  "name": "披甲守卫",
+                  "maxHp": 24,
+                  "attack": 8,
+                  "defense": 1,
+                  "speed": 3
+                },
+                {
+                  "id": "archer",
+                  "name": "游荡弓手",
+                  "maxHp": 16,
+                  "attack": 6,
+                  "defense": 0,
+                  "speed": 8
+                }
+              ],
+              "loot": {
+                "ore": 2
+              },
+              "experience": 25,
+              "cooldownSeconds": 30
+            }
+          }
+        }
+      },
+      {
+        "id": "initiative",
+        "module": "initiative.listed",
+        "config": {}
+      },
+      {
+        "id": "targeting",
+        "module": "targeting.lowest-hp",
+        "config": {}
+      },
+      {
+        "id": "battles",
+        "module": "battles.party",
+        "config": {
+          "container": "player"
+        },
+        "bindings": {
+          "party": "party",
+          "squad-rule": "squad-rules",
+          "initiative": "initiative",
+          "targeting": "targeting",
+          "combat-rule": "combat-rules",
+          "location": "location",
+          "inventory": "inventory",
+          "progression": "progression",
+          "time": "clock",
+          "battle-session": "session"
+        }
+      },
+      {
+        "id": "party-view",
+        "module": "view.party.text",
+        "config": {
+          "title": "同行者 · 队伍冒险"
+        },
+        "bindings": {
+          "text-view": "view",
+          "party": "party",
+          "party-battle": "battles",
+          "progression": "progression",
+          "quests": "quests",
+          "recovery": "recovery",
+          "vitals-selection": "party-vitals",
+          "battle-session": "session"
+        }
+      }
+    ]
+  },
+  "demo": [
+    {
+      "target": "equipment",
+      "action": "equip",
+      "input": {
+        "item": "sword",
+        "slot": "hand"
+      }
+    },
+    {
+      "target": "equipment",
+      "action": "equip",
+      "input": {
+        "item": "armor",
+        "slot": "body"
+      }
+    },
+    {
+      "target": "party",
+      "action": "recruit",
+      "input": {
+        "member": "mira"
+      }
+    },
+    {
+      "target": "party",
+      "action": "recruit",
+      "input": {
+        "member": "lin"
+      }
+    },
+    {
+      "target": "party",
+      "action": "setActive",
+      "input": {
+        "members": [
+          "mira"
+        ]
+      }
+    },
+    {
+      "target": "party",
+      "action": "setActive",
+      "input": {
+        "members": [
+          "mira",
+          "lin"
+        ]
+      }
+    },
+    {
+      "target": "quests",
+      "action": "accept",
+      "input": {
+        "quest": "supply"
+      }
+    },
+    {
+      "target": "location",
+      "action": "move",
+      "input": {
+        "to": "forest"
+      }
+    },
+    {
+      "target": "gathering",
+      "action": "gather",
+      "input": {
+        "site": "wood"
+      }
+    },
+    {
+      "target": "location",
+      "action": "move",
+      "input": {
+        "to": "town"
+      }
+    },
+    {
+      "target": "location",
+      "action": "move",
+      "input": {
+        "to": "quarry"
+      }
+    },
+    {
+      "target": "gathering",
+      "action": "gather",
+      "input": {
+        "site": "stone"
+      }
+    },
+    {
+      "target": "location",
+      "action": "move",
+      "input": {
+        "to": "town"
+      }
+    },
+    {
+      "target": "location",
+      "action": "move",
+      "input": {
+        "to": "river"
+      }
+    },
+    {
+      "target": "gathering",
+      "action": "gather",
+      "input": {
+        "site": "reed"
+      }
+    },
+    {
+      "target": "location",
+      "action": "move",
+      "input": {
+        "to": "town"
+      }
+    },
+    {
+      "target": "workshop",
+      "action": "start",
+      "input": {
+        "recipe": "plank"
+      }
+    },
+    {
+      "target": "clock",
+      "action": "advance",
+      "input": {
+        "steps": 2
+      }
+    },
+    {
+      "target": "workshop",
+      "action": "collect",
+      "input": {}
+    },
+    {
+      "target": "workshop",
+      "action": "start",
+      "input": {
+        "recipe": "toolkit"
+      }
+    },
+    {
+      "target": "clock",
+      "action": "advance",
+      "input": {
+        "steps": 3
+      }
+    },
+    {
+      "target": "workshop",
+      "action": "collect",
+      "input": {}
+    },
+    {
+      "target": "quests",
+      "action": "turnIn",
+      "input": {
+        "quest": "supply"
+      }
+    },
+    {
+      "target": "quests",
+      "action": "accept",
+      "input": {
+        "quest": "patrol"
+      }
+    },
+    {
+      "target": "location",
+      "action": "move",
+      "input": {
+        "to": "forest"
+      }
+    },
+    {
+      "target": "battles",
+      "action": "start",
+      "input": {
+        "encounter": "wolves"
+      }
+    },
+    {
+      "target": "skills",
+      "action": "use",
+      "input": {
+        "skill": "cleave",
+        "target": "fang"
+      }
+    },
+    {
+      "target": "battles",
+      "action": "attack",
+      "input": {
+        "actor": "mira",
+        "target": "fang"
+      }
+    },
+    {
+      "target": "battles",
+      "action": "attack",
+      "input": {
+        "actor": "lin",
+        "target": "howl"
+      }
+    },
+    {
+      "target": "battles",
+      "action": "attack",
+      "input": {
+        "actor": "hero",
+        "target": "howl"
+      }
+    },
+    {
+      "target": "battles",
+      "action": "claim",
+      "input": {}
+    },
+    {
+      "target": "party",
+      "action": "setActive",
+      "input": {
+        "members": [
+          "mira"
+        ]
+      }
+    },
+    {
+      "target": "clock",
+      "action": "advance",
+      "input": {
+        "steps": 1
+      }
+    },
+    {
+      "target": "battles",
+      "action": "start",
+      "input": {
+        "encounter": "wolves"
+      }
+    },
+    {
+      "target": "skills",
+      "action": "use",
+      "input": {
+        "skill": "cleave",
+        "target": "fang"
+      }
+    },
+    {
+      "target": "battles",
+      "action": "attack",
+      "input": {
+        "actor": "mira",
+        "target": "howl"
+      }
+    },
+    {
+      "target": "battles",
+      "action": "attack",
+      "input": {
+        "actor": "hero",
+        "target": "howl"
+      }
+    },
+    {
+      "target": "battles",
+      "action": "claim",
+      "input": {}
+    },
+    {
+      "target": "clock",
+      "action": "advance",
+      "input": {
+        "steps": 1
+      }
+    },
+    {
+      "target": "location",
+      "action": "move",
+      "input": {
+        "to": "town"
+      }
+    },
+    {
+      "target": "quests",
+      "action": "turnIn",
+      "input": {
+        "quest": "patrol"
+      }
+    },
+    {
+      "target": "party-vitals",
+      "action": "select",
+      "input": {
+        "member": "lin"
+      }
+    },
+    {
+      "target": "recovery",
+      "action": "use",
+      "input": {
+        "remedy": "tonic"
+      }
+    },
+    {
+      "target": "party-vitals",
+      "action": "select",
+      "input": {
+        "member": "mira"
+      }
+    },
+    {
+      "target": "recovery",
+      "action": "use",
+      "input": {
+        "remedy": "tonic"
+      }
+    },
+    {
+      "target": "party",
+      "action": "setActive",
+      "input": {
+        "members": [
+          "mira",
+          "lin"
+        ]
+      }
+    },
+    {
+      "target": "quests",
+      "action": "accept",
+      "input": {
+        "quest": "guard"
+      }
+    },
+    {
+      "target": "location",
+      "action": "move",
+      "input": {
+        "to": "quarry"
+      }
+    },
+    {
+      "target": "battles",
+      "action": "start",
+      "input": {
+        "encounter": "raiders"
+      }
+    },
+    {
+      "target": "skills",
+      "action": "use",
+      "input": {
+        "skill": "cleave",
+        "target": "guard"
+      }
+    },
+    {
+      "target": "battles",
+      "action": "attack",
+      "input": {
+        "actor": "mira",
+        "target": "guard"
+      }
+    },
+    {
+      "target": "battles",
+      "action": "attack",
+      "input": {
+        "actor": "lin",
+        "target": "archer"
+      }
+    },
+    {
+      "target": "skills",
+      "action": "use",
+      "input": {
+        "skill": "heavy",
+        "target": "guard"
+      }
+    },
+    {
+      "target": "battles",
+      "action": "attack",
+      "input": {
+        "actor": "mira",
+        "target": "archer"
+      }
+    },
+    {
+      "target": "battles",
+      "action": "attack",
+      "input": {
+        "actor": "hero",
+        "target": "archer"
+      }
+    },
+    {
+      "target": "battles",
+      "action": "claim",
+      "input": {}
+    },
+    {
+      "target": "location",
+      "action": "move",
+      "input": {
+        "to": "town"
+      }
+    },
+    {
+      "target": "quests",
+      "action": "turnIn",
+      "input": {
+        "quest": "guard"
+      }
+    },
+    {
+      "target": "party-vitals",
+      "action": "select",
+      "input": {
+        "member": "lin"
+      }
+    },
+    {
+      "target": "recovery",
+      "action": "use",
+      "input": {
+        "remedy": "tonic"
+      }
+    },
+    {
+      "target": "market",
+      "action": "sell",
+      "input": {
+        "item": "pelt",
+        "quantity": 2
+      }
+    },
+    {
+      "target": "market",
+      "action": "sell",
+      "input": {
+        "item": "ore",
+        "quantity": 2
+      }
+    },
+    {
+      "target": "clock",
+      "action": "advance",
+      "input": {
+        "steps": 2
+      }
+    }
+  ]
+}

@@ -71,6 +71,19 @@ CDDA主项目许可仍为上述CC-BY-SA-3.0。FLARE的实际文件头声明GPL-3
 
 具体能力、状态归属、时间边界与失败路径见 [装备技能指南](docs/loadout.md)。
 
+## v0.8 队伍与多目标战斗采用范围
+
+本轮实际核查 Tuxemon/Tuxemon 的固定提交 `9e6258ff726b786040a267e8bdbbf037b560285e`（所查development提交时间2026-09-28T17:01:39Z），原文件头标记GPL-3.0，[LICENSE](https://github.com/Tuxemon/Tuxemon/blob/9e6258ff726b786040a267e8bdbbf037b560285e/LICENSE)为GPL v3正文。这里只记录实际文件许可，不自行扩写为or-later。其Python/Pygame/client、全局事件及共享对象引用不适合直接装入本项目JSON状态/能力事务；本批独立实现TypeScript，没有复制来源源码、文本、素材或成套数值，没有新增依赖。研究缓存未收入发布源码或运行包。
+
+| 实际源文件 | 核查结果 | 本项目采用与差异 |
+| --- | --- | --- |
+| [party.py](https://github.com/Tuxemon/Tuxemon/blob/9e6258ff726b786040a267e8bdbbf037b560285e/tuxemon/entity/party.py)、[monster.py](https://github.com/Tuxemon/Tuxemon/blob/9e6258ff726b786040a267e8bdbbf037b560285e/tuxemon/monster/monster.py)、[field_monsters.py](https://github.com/Tuxemon/Tuxemon/blob/9e6258ff726b786040a267e8bdbbf037b560285e/tuxemon/combat/field_monsters.py) | 持久名单、上场Monster引用与自身current_hp分开；结束战斗不等于统一满血 | 领队HP继续用原vitals；伙伴HP只在party；战斗只保存我方ID，后备不治愈 |
+| [action_queue.py](https://github.com/Tuxemon/Tuxemon/blob/9e6258ff726b786040a267e8bdbbf037b560285e/tuxemon/combat/action_queue.py)、[sort_manager.py](https://github.com/Tuxemon/Tuxemon/blob/9e6258ff726b786040a267e8bdbbf037b560285e/tuxemon/combat/sort_manager.py) | 类别、修正速度和随机平局排序后从末尾取行动；每次行动后重排；KO移除actor或target相关动作 | 本地可选名单或速度顺序，平局稳定，当前轮队列冻结，执行前按真实HP跳过；并非复刻上游随机/动态排序 |
+| [session.py](https://github.com/Tuxemon/Tuxemon/blob/9e6258ff726b786040a267e8bdbbf037b560285e/tuxemon/combat/session.py) | 区分上场目标与整个存活队伍，部分API集合去重且不保证稳定顺序 | 当前仅显式单敌目标；敌方候选为冻结出战名单中现存活队员，目标策略独立且返回重验 |
+| [reward_system.py](https://github.com/Tuxemon/Tuxemon/blob/9e6258ff726b786040a267e8bdbbf037b560285e/tuxemon/combat/reward_system.py)、[utils.py](https://github.com/Tuxemon/Tuxemon/blob/9e6258ff726b786040a267e8bdbbf037b560285e/tuxemon/combat/utils.py) | 击倒阶段发经验，训练师金额累计后在获胜时入钱包 | 保留本地胜利后显式claim；物品/经验/胜场/冷却/会话同一事务，不能把失败全回滚归因于上游 |
+
+核查 [bobeff固定README](https://github.com/bobeff/open-source-games/blob/3a9ab8fc892a2cdadf8989a72ba7624a11e39cec/README.md)未找到Tuxemon，故记录为补充定向研究对象，未误称来自该目录条目。原Wesnoth等发现路径保持。完整研究、函数边界与证据限制见 [队伍源码研究](docs/party-source-research.md)。
+
 ## 主项目发布许可
 
 主工程目前是用户的独立开发工程，package.json 标记 private / UNLICENSED；尚未替用户选择对外开源许可。此标记不改变上面第三方依赖的许可。后续确实移植其他来源的源码时，要按具体文件重新记录组合和分发条件。

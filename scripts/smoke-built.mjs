@@ -22,7 +22,7 @@ try {
   const inputs=fingerprint('built-smoke');
   temporary=mkdtempSync(join(tmpdir(),'text-world-built-'));
   const names=run(['list','--json']);
-  assert.ok(Array.isArray(names)&&['frontier','frontier-continuous','campaign','campaign-continuous','loadout','loadout-continuous'].every(name=>names.includes(name)));
+  assert.ok(Array.isArray(names)&&['frontier','frontier-continuous','campaign','campaign-continuous','loadout','loadout-continuous','party','party-continuous'].every(name=>names.includes(name)));
   for(const name of names){
     const save=join(temporary,`${name}.json`);
     const output=run(['demo',name,'--json','--save',save]);
@@ -36,7 +36,7 @@ try {
   assert.equal(custom.snapshot.modules.research.state.progress,7);
   results.push({world:'external-author-module',actions:custom.results.length,revision:custom.snapshot.revision,ok:true});
   const catalog=run(['modules','--json']);
-  assert.ok(['quests.journal','encounters.duel','progression.track','equipment.slots','effects.timed','skills.combat'].every(id=>catalog.some(row=>row.manifest.id===id)));
+  assert.ok(['quests.journal','encounters.duel','progression.track','equipment.slots','effects.timed','skills.combat','party.roster','battles.party','initiative.speed','targeting.lowest-hp','vitals.party-member'].every(id=>catalog.some(row=>row.manifest.id===id)));
   const forked=join(temporary,'my authored farm.json');
   const edited=join(temporary,'authored-farm.json');
   assert.equal(run(['fork','farm','--id','author.smoke-farm','--out',forked,'--json']).ok,true);
@@ -210,9 +210,78 @@ try {
   assert.equal(quotedSnapshot.modules[loadoutIds.get('inventory')].state.containers.player.spark,0);
   assert.deepEqual(quotedSnapshot.modules[loadoutIds.get('encounters')].state.wins,{wolf:2,raider:1});
   results.push({world:'interactive-loadout-arbitrary-ids',actions:quotedLoadout.demo.length,revision:quotedSnapshot.revision,ok:true});
+
+  const partyFork=join(temporary,'my party.json'), partyEdited=join(temporary,'party-edited.json'), partyPatch=join(temporary,'party.patch.json');
+  assert.equal(run(['fork','party','--id','author.smoke-party','--out',partyFork,'--json']).ok,true);
+  const partyPack=JSON.parse(readFileSync(partyFork,'utf8'));
+  const squadIndex=partyPack.world.modules.findIndex(instance=>instance.id==='squad-rules');
+  assert.ok(squadIndex>=0);
+  writeFileSync(partyPatch,JSON.stringify([
+    {op:'test',path:`/world/modules/${squadIndex}/id`,value:'squad-rules'},
+    {op:'replace',path:`/world/modules/${squadIndex}/config/encounters/wolves/loot/pelt`,value:2}
+  ]));
+  assert.equal(run(['patch',partyFork,'--patch',partyPatch,'--out',partyEdited,'--run-demo','--json']).ok,true);
+  assert.equal(run(['validate',partyEdited,'--run-demo','--json']).ok,true);
+  const authoredParty=run(['demo',partyEdited,'--json']);
+  assert.equal(authoredParty.results.length,63);
+  assert.equal(authoredParty.snapshot.modules.inventory.state.containers.player.pelt,2);
+  assert.equal(authoredParty.snapshot.modules.progression.state.experience,105);
+  assert.equal(authoredParty.snapshot.modules.party.state.members.lin.hp,14);
+  assert.equal(authoredParty.snapshot.modules.session.state.owner,null);
+  results.push({world:'authored-party',actions:authoredParty.results.length,revision:authoredParty.snapshot.revision,ok:true});
+
+  const originalParty=JSON.parse(readFileSync(resolve('worlds/party.json'),'utf8'));
+  const partyCheckpoint=join(temporary,'party active.save.json'), partyFinal=join(temporary,'party final.save.json'), partyResumed=join(temporary,'party resumed.save.json');
+  const partySplit=originalParty.demo.findIndex(command=>command.target==='skills')+1;
+  assert.equal(partySplit,27);
+  const partyBefore=originalParty.demo.slice(0,partySplit).map(command=>`do ${JSON.stringify(command)}`);
+  const partyAfter=originalParty.demo.slice(partySplit).map(command=>`do ${JSON.stringify(command)}`);
+  const partyCommands=[...partyBefore,`save ${partyCheckpoint}`,...partyAfter,`save ${partyFinal}`,`load ${partyCheckpoint}`,...partyAfter,`save ${partyResumed}`,'exit',''];
+  const partyPlay=spawnSync(process.execPath,[cli,'play','party'],{cwd:temporary,input:partyCommands.join('\n'),encoding:'utf8',timeout:20000});
+  assert.equal(partyPlay.status,0,partyPlay.stderr||String(partyPlay.error));
+  assert.doesNotMatch(partyPlay.stdout,/操作未生效|未完成：/);
+  assert.match(partyPlay.stdout,/已恢复：/);
+  const midParty=JSON.parse(readFileSync(partyCheckpoint,'utf8'));
+  assert.equal(midParty.modules.battles.state.battle.enemies[0].hp,1);
+  assert.deepEqual(midParty.modules.battles.state.battle.queue[midParty.modules.battles.state.battle.cursor],{side:'party',id:'mira'});
+  assert.equal(midParty.modules.session.state.owner,'battles');
+  assert.equal(midParty.modules.effects.state.active.rally.expiresAt,70);
+  assert.equal(midParty.modules.skills.state.cooldowns.cleave.readyAt,60);
+  const finalParty=JSON.parse(readFileSync(partyFinal,'utf8'));
+  assert.equal(finalParty.modules.progression.state.experience,105);
+  assert.equal(finalParty.modules.vitals.state.hp,20);
+  assert.equal(finalParty.modules.party.state.members.mira.hp,14);
+  assert.equal(finalParty.modules.party.state.members.lin.hp,14);
+  assert.equal(finalParty.modules.clock.state.elapsedSeconds,90);
+  assert.deepEqual(finalParty.modules.battles.state.wins,{wolves:2,raiders:1});
+  assert.equal(finalParty.modules.session.state.owner,null);
+  assert.deepEqual(JSON.parse(readFileSync(partyResumed,'utf8')),finalParty);
+  results.push({world:'interactive-party-active-save-load',actions:originalParty.demo.length+partyAfter.length,revision:finalParty.revision,ok:true});
+
+  const quotedParty=structuredClone(originalParty), quotedPartyFile=join(temporary,'quoted party.json'), quotedPartySave=join(temporary,'quoted party.save.json');
+  const partyIds=new Map(quotedParty.world.modules.map(instance=>[instance.id,`队伍 "${instance.id}" 😀`]));
+  for(const instance of quotedParty.world.modules){
+    instance.id=partyIds.get(instance.id);
+    for(const key of Object.keys(instance.bindings??{}))instance.bindings[key]=partyIds.get(instance.bindings[key]);
+  }
+  quotedParty.world.entryView.instance=partyIds.get(quotedParty.world.entryView.instance);
+  for(const command of quotedParty.demo)command.target=partyIds.get(command.target);
+  writeFileSync(quotedPartyFile,JSON.stringify(quotedParty));
+  const partyQuotedCommands=quotedParty.demo.map(command=>`do ${JSON.stringify(command)}`);
+  partyQuotedCommands.push(`save ${quotedPartySave}`,'exit','');
+  const partyQuotedPlay=spawnSync(process.execPath,[cli,'play',quotedPartyFile],{cwd:temporary,input:partyQuotedCommands.join('\n'),encoding:'utf8',timeout:20000});
+  assert.equal(partyQuotedPlay.status,0,partyQuotedPlay.stderr||String(partyQuotedPlay.error));
+  assert.doesNotMatch(partyQuotedPlay.stdout,/操作未生效|未完成：/);
+  const partyQuotedSnapshot=JSON.parse(readFileSync(quotedPartySave,'utf8'));
+  assert.equal(partyQuotedSnapshot.modules[partyIds.get('progression')].state.experience,105);
+  assert.equal(partyQuotedSnapshot.modules[partyIds.get('party')].state.members.mira.hp,14);
+  assert.equal(partyQuotedSnapshot.modules[partyIds.get('party')].state.members.lin.hp,14);
+  assert.equal(partyQuotedSnapshot.modules[partyIds.get('session')].state.owner,null);
+  assert.deepEqual(partyQuotedSnapshot.modules[partyIds.get('battles')].state.wins,{wolves:2,raiders:1});
+  results.push({world:'interactive-party-arbitrary-ids',actions:quotedParty.demo.length,revision:partyQuotedSnapshot.revision,ok:true});
   assert.deepEqual(fingerprint('built-smoke'),inputs,'Verification inputs changed during built smoke');
   report('passed',{fingerprint:inputs});
-  console.log('构建后的 JS、世界创作、装备技能联动、活动战斗存档恢复与任意ID验证通过');
+  console.log('构建后的 JS、世界创作、队伍与装备技能联动、活动战斗存档恢复与任意ID验证通过');
 } catch(error) {
   report('failed',{error:String(error)});
   throw error;

@@ -34,9 +34,19 @@ function checkInventory(ctx: ReadContext): void {
     if (inventoryCount(ctx, item.id) !== item.quantity) ctx.fail('INVALID_INVENTORY', '库存列表与物品数量不符');
   }
 }
+function encounterSource(ctx: ReadContext): string {
+  const configured = ctx.config.victorySource ?? 'auto';
+  if (configured !== 'auto') {
+    if (!ctx.has(configured as string)) return ctx.fail('MISSING_ENCOUNTERS', '所选战绩来源没有绑定');
+    return configured as string;
+  }
+  if (ctx.has('encounter-records') && ctx.has('encounters')) return ctx.fail('AMBIGUOUS_ENCOUNTERS', '存在两种战绩来源，请配置 victorySource');
+  if (ctx.has('encounter-records')) return 'encounter-records';
+  if (ctx.has('encounters')) return 'encounters';
+  return ctx.fail('MISSING_ENCOUNTERS', '胜利目标需要战绩能力');
+}
 function wins(ctx: ReadContext): Record<string, number> {
-  if (!ctx.has('encounters')) return ctx.fail('MISSING_ENCOUNTERS', '胜利目标需要遭遇能力');
-  const value = ctx.query('encounters', 'records', {});
+  const value = ctx.query(encounterSource(ctx), 'records', {});
   if (!questObject(value) || !questObject(value.wins)) return ctx.fail('INVALID_ENCOUNTERS', '遭遇提供者没有返回累计胜利');
   for (const [id, count] of Object.entries(value.wins)) if (!questId(id) || typeof count !== 'number' || !Number.isSafeInteger(count) || count < 0) ctx.fail('INVALID_ENCOUNTERS', '累计胜利必须为非负安全整数');
   return value.wins as Record<string, number>;
@@ -49,7 +59,7 @@ function checkReferences(ctx: ReadContext, quest: FrozenQuest, current: boolean)
   }
   if (Object.keys(quest.victories).length) {
     wins(ctx);
-    if (current) for (const encounter of Object.keys(quest.victories)) { const value = ctx.query('encounters', 'describe', { encounter }); if (!questObject(value) || value.id !== encounter) ctx.fail('INVALID_ENCOUNTERS', '遭遇提供者返回的遭遇与引用不符'); }
+    if (current) for (const encounter of Object.keys(quest.victories)) { const value = ctx.query(encounterSource(ctx), 'describe', { encounter }); if (!questObject(value) || value.id !== encounter) ctx.fail('INVALID_ENCOUNTERS', '遭遇提供者返回的遭遇与引用不符'); }
   }
 }
 function allowedLocation(ctx: ReadContext, quest: FrozenQuest): boolean {
@@ -95,12 +105,16 @@ function validate(ctx: ReadContext): void {
 }
 const questInput = objectSchema({ quest: idSchema });
 export const questsModule: ModuleDefinition = {
-  manifest: { id: 'quests.journal', title: '任务日志', version: '1.0.0', apiVersion: 1, stateVersion: 1, provides: { quests: '1.0.0' }, requires: {
-    'quest-rule': { version: '^1.0.0' }, inventory: { version: '^1.0.0' }, progression: { version: '^1.0.0' }, location: { version: '^1.0.0', optional: true }, encounters: { version: '^1.0.0', optional: true }
+  manifest: { id: 'quests.journal', title: '任务日志', version: '1.1.0', apiVersion: 1, stateVersion: 1, provides: { quests: '1.0.0' }, requires: {
+    'quest-rule': { version: '^1.0.0' }, inventory: { version: '^1.0.0' }, progression: { version: '^1.0.0' }, location: { version: '^1.0.0', optional: true }, encounters: { version: '^1.0.0', optional: true }, 'encounter-records': { version: '^1.0.0', optional: true }
   } },
-  configSchema: objectSchema({ container: idSchema }),
+  configSchema: objectSchema({ container: idSchema, victorySource: { enum: ['auto', 'encounters', 'encounter-records'] } }, ['container']),
   stateSchema: objectSchema({ active: recordSchema(objectSchema({ definition: frozenQuestSchema, baselineWins: recordSchema(countSchema) })), completed: recordSchema(countSchema) }),
   initialState: () => ({ active: {}, completed: {} }), validate,
+  migrate(previous) {
+    if (previous.moduleId !== 'quests.journal' || previous.version !== '1.0.0' || previous.stateVersion !== 1) throw new Error('不兼容的任务状态');
+    return previous.state;
+  },
   commands: {
     accept: { schema: questInput, execute(ctx, input) {
       const id = input.quest as string, state = ctx.state<State>();

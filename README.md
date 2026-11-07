@@ -1,10 +1,10 @@
 # 模块化文字世界
 
-**0.7.0-alpha.1 · 模块化装备、技能与状态效果**
+**0.8.0-alpha.1 · 模块化队伍、伙伴与多目标战斗**
 
 这是独立的文字世界项目，与词条无限组合游戏分开。全部现有和未来系统、规则、内容、数据、表现与操作都按模块组织。仓库中的经营、战棋和叙事只是架构验证样例，不限制未来玩法。
 
-当前版本 **0.7.0-alpha.1**，包含模块宿主、42 个内置模块定义、12 个世界配置和一个从外部文件加载的作者模块。边境行者把装备交换、临时属性、技能资格与冷却接入现有探索、制作、任务、战斗、成长和交易；规则、内容、状态与文字视图分别装配。作者可发现模块、复制世界、用标准 JSON Patch 修改装配、校验后导出并运行。正式游戏 UI 和更丰富的玩法仍在继续开发。
+当前版本 **0.8.0-alpha.1**，包含模块宿主、53 个内置模块定义、14 个世界配置和一个从外部文件加载的作者模块。同行者把持久伙伴、出战名单、多目标战斗、行动顺序与敌方目标策略接入已有装备、技能、生产、任务、成长和交易。领队、伙伴、敌人各自保留唯一生命来源，恢复用品可以选择具体队员；规则、内容、状态与文字视图分别装配。作者可发现模块、复制世界、用标准 JSON Patch 修改装配、校验后导出并运行。正式游戏 UI 和更丰富的玩法仍在继续开发。
 
 源码仓库：[Night-SHANG/wenzi](https://github.com/Night-SHANG/wenzi)。当前 CI：[Modular runtime checks](https://github.com/Night-SHANG/wenzi/actions/workflows/preflight.yml)。仓库公开不代表主项目已选择开源授权协议；依赖许可见 `THIRD_PARTY.md`。
 
@@ -30,6 +30,8 @@ node dist/cli/index.js demo story
 node dist/cli/index.js demo frontier
 node dist/cli/index.js demo campaign
 node dist/cli/index.js demo loadout
+node dist/cli/index.js demo party
+node dist/cli/index.js play party
 node dist/cli/index.js play loadout
 node dist/cli/index.js play campaign
 node dist/cli/index.js play frontier
@@ -84,6 +86,8 @@ JSON Patch 支持 `add/remove/replace/move/copy/test`。建议在按数组位置
 | campaign-continuous | 同一小镇冒险按模拟秒推进 | 战斗和任务进行中更换时钟仍保留进度 |
 | loadout | 槽位装备、派生属性、临时效果、技能资格/消耗/冷却，与原任务冒险组合 | 真实资源与战斗联动；失败完整回滚，耗尽消耗品后仍可继续任务循环 |
 | loadout-continuous | 同一装备技能世界按模拟秒推进 | 活动战斗、装备、效果、冷却同时保存后更换时钟 |
+| party | 伙伴招募/编组/持久生命、多个目标、行动顺序、敌方策略、队员恢复，与装备任务世界组合 | 完整63动作；回合队列/独占会话/奖励事务，倒下后由其他伙伴继续 |
+| party-continuous | 同一队伍冒险按模拟秒推进 | 领队技能、队列和伙伴生命同时保存后换钟；规则替换不改当前队列 |
 
 示例数值是作者测试配置，未进行正式平衡。连续时间模块接收显式秒数，尚未绑定真实帧循环。战棋双方可手动操作，尚无 AI、寻路或地形效果。
 
@@ -92,6 +96,8 @@ JSON Patch 支持 `add/remove/replace/move/copy/test`。建议在按数组位置
 小镇冒险的完整路线见 [docs/campaign.md](docs/campaign.md)。运行 `demo campaign` 自动执行46个动作，完成三项任务、两场灰狼遭遇和一场袭击者遭遇，最终总经验105、等级3、生命22/34、金币16。任务接取时冻结要求，重复任务重新记录战绩基线；胜利后明确领取奖励，背包满时保留战利品等待重试。升级曲线、伤害公式、任务内容、遭遇内容和恢复用品均由独立模块提供。
 
 新路线见 [docs/loadout.md](docs/loadout.md)。`demo loadout` 执行48个动作：穿戴与交换剑甲，用消耗火花石的“破势”和达到等级要求的“重击”完成同一任务链，再推进到90秒让“振奋”到期。最终经验105、等级3、生命34/34、金币16，装备提供攻击+2/防御+1，临时效果已经消失。技能、装备和效果都不直接写库存、经验或战斗私有状态；刷新与延长效果时长也分别提供可替换能力。
+
+队伍路线见 [docs/party.md](docs/party.md)。`demo party` 执行63个动作：招募米拉与林、换出受伤后备、两场狼群、双目标守卫战、领队技能与伙伴攻击、药剂恢复及任务交付。最终经验105、等级3、金币16、模拟时间90秒；领队20/34、米拉14/18、林14/14。林曾在守卫战倒下，其他队员继续取胜，回镇后用真实奖励药剂恢复。行动顺序可换成速度排序，敌人目标可换成按名单首位；已保存当前回合不被重排。旧决斗与格战仍独立可用。
 
 ## 实际操作一轮
 
@@ -166,6 +172,6 @@ node dist/cli/index.js demo examples/custom-world.json --plugin examples/custom-
 
 正式浏览器视觉界面、可视化模组编辑器、模块下载与分发、不可信代码隔离、服务器权限模型、跨服事务、联机/MMORPG、实时枪战、空间流式加载与大规模性能验证，都还没有实现。当前保存文件没有加密签名；它是本地作者数据格式，不是反作弊机制。技术验证不证明长期玩法乐趣或产品完成。
 
-成熟游戏的具体源码研究已保留。生产职责参考 Widelands；经验资格和溢出职责参考 Wesnoth；任务和效果生命周期参考 CDDA；装备标签、技能条件与独立冷却核对 FLARE。规则适配为本项目独立实现，当前没有复制这些游戏的代码、素材或成套数值。核心基础校验直接复用 Ajv、semver，世界修改复用 fast-json-patch。具体固定来源、差异和采用范围见 [THIRD_PARTY.md](THIRD_PARTY.md)。
+成熟游戏的具体源码研究已保留。生产职责参考 Widelands；经验资格和溢出职责参考 Wesnoth；任务和效果生命周期参考 CDDA；装备标签、技能条件与独立冷却核对 FLARE；持久队伍、上场单位与行动队列核对 Tuxemon。规则适配为本项目独立实现，当前没有复制这些游戏的代码、素材或成套数值。核心基础校验直接复用 Ajv、semver，世界修改复用 fast-json-patch。具体固定来源、差异和采用范围见 [THIRD_PARTY.md](THIRD_PARTY.md)。
 
-本地实际检查结果在 `artifacts/`，工程包包含 `verification/`。历史 v0.4 提交 `f86be17` 的 [Actions run 42246209860](https://github.com/Night-SHANG/wenzi/actions/runs/42246209860) 已在 Linux 和 Windows 通过；后续新 CI 未查询，不能沿用旧结果。当前进度见 [docs/loadout-progress.md](docs/loadout-progress.md)，设计与执行记录见 `docs/`。
+本地实际检查结果在 `artifacts/`，工程包包含 `verification/`。历史 v0.4 提交 `f86be17` 的 [Actions run 42246209860](https://github.com/Night-SHANG/wenzi/actions/runs/42246209860) 已在 Linux 和 Windows 通过；后续新 CI 未查询，不能沿用旧结果。当前进度见 [docs/party-progress.md](docs/party-progress.md)，设计与执行记录见 `docs/`。

@@ -30,4 +30,17 @@ Recorded 2026-11-07 12:26 Beijing (UTC+08). Branch feat/party-battles; base beec
 
 ## Work state
 
-Design/plan written; independent builder check found no ownership/queue blocker; routing ambiguity resolved above and skills targets pinned per skill row. Source research pending before implementation dispatch. No production changes yet. Current source baseline remains beec605 with clean new branch apart from these records.
+Initial record (before dispatch): Design/plan written; independent builder check found no ownership/queue blocker; routing ambiguity resolved above and skills targets pinned per skill row. The following completion records supersede that initial state. Source research was completed before worker implementation.
+
+
+Task2 complete: commit c7a8c54; focused10/10; independent spec/quality approved, no findings. Cross-task warning resolved by real integration tests for unchanged current queue/new next-round policy, late nested rollback, and original-world gates.
+Task1 complete: commit2d5ae95; focused16/16; independent spec/quality approved, no findings. Initial RED assembly-scaffold limitation is preserved in the report, not overstated as isolated regressions. Cross-task lifecycle/bindings proven by real world integration; aggregate gates pending.
+Task3 complete: commit3bebf97; focused48/48; independent spec/quality approved, no Critical/Important. One Minor for dense new tests accepted for next related edit; no behavior defect or reason to rerun unchanged suites. Root7/7 real-world integration passed against both clocks and literal63-action outcomes.
+Ruling: Parallel workers dispatched at8444ddc; root commits disjoint paths individually. Scoped review bases are immediately preceding integration commits (c7a8c54 /2d5ae95), which contain no changes in the current task's owned paths — full lane diffs are preserved without reviewing another lane twice — wrong path isolation would hide changes, so exact commit file lists remain in review packets.
+Ruling: Leader attack0 from derived attributes is accepted; companion/enemy catalogs remain positive — existing combat-rule decides positive minimum damage — inconsistent stricter validation would reject a valid modular attribute result. Producer and consumer are aligned and tested.
+Ruling: Add optional battle-session consumption to party text view so another controller's ownership also hides roster-change hints; it holds no game state. Extra root test file party-consumers.test.ts isolates generic/legacy routing and migrations without changing legacy fixtures.
+
+Task3 fix round1: first aggregate run had383/383 tests and14worlds but5/6gates; TS2322 in list serialization boundary. Original owner wrapped existing return in identity json helper; tsc exit0; commit3e34682. Independent scoped rereview closed issue with no new findings. Root fresh preflight now6/6,383/383 and14worlds; build exit0. Compiled smoke still running.
+Task4 focused complete: consumer38/38, final world10/10; actual late AI failure after enemy write, malformed view fields, strict old view migration added. Root shared code and documentation ready for final whole-branch spec/quality review.
+
+Aggregate gate evidence: 2026-11-07 12:55:27 Beijing Preflight6/6, tests383/383, worlds14; build exit0; built smoke28/28 at2026-11-07T12:55:55+08:00. Fingerprints are stored in artifacts/preflight.json and built-smoke.json. Only docs and review records may change while these remain the published source/runtime bytes.
