@@ -52,6 +52,9 @@ function wins(ctx: ReadContext): Record<string, number> {
   return value.wins as Record<string, number>;
 }
 function checkReferences(ctx: ReadContext, quest: FrozenQuest, current: boolean): void {
+  if (quest.experience > 0 && !ctx.has('progression')) {
+    ctx.fail('MISSING_PROGRESSION', '承诺经验奖励的任务需要成长能力');
+  }
   for (const item of new Set([...Object.keys(quest.delivery), ...Object.keys(quest.rewards)])) inventoryCount(ctx, item);
   if (quest.locations.length) {
     if (!ctx.has('location')) ctx.fail('MISSING_LOCATION', '限定地点的任务需要地点能力');
@@ -92,7 +95,8 @@ function experience(ctx: ReadContext, value: unknown): number {
   return safeCount(ctx, value.experience, '总经验');
 }
 function validate(ctx: ReadContext): void {
-  checkInventory(ctx); experience(ctx, ctx.query('progression', 'status', {}));
+  checkInventory(ctx);
+  if (ctx.has('progression')) experience(ctx, ctx.query('progression', 'status', {}));
   // The installed catalog remains independently valid even while old accepted terms are frozen.
   for (const quest of currentCatalog(ctx).values()) checkReferences(ctx, quest, true);
   const state = ctx.state<State>();
@@ -105,14 +109,14 @@ function validate(ctx: ReadContext): void {
 }
 const questInput = objectSchema({ quest: idSchema });
 export const questsModule: ModuleDefinition = {
-  manifest: { id: 'quests.journal', title: '任务日志', version: '1.1.0', apiVersion: 1, stateVersion: 1, provides: { quests: '1.0.0' }, requires: {
-    'quest-rule': { version: '^1.0.0' }, inventory: { version: '^1.0.0' }, progression: { version: '^1.0.0' }, location: { version: '^1.0.0', optional: true }, encounters: { version: '^1.0.0', optional: true }, 'encounter-records': { version: '^1.0.0', optional: true }
+  manifest: { id: 'quests.journal', title: '任务日志', version: '1.2.0', apiVersion: 1, stateVersion: 1, provides: { quests: '1.0.0' }, requires: {
+    'quest-rule': { version: '^1.0.0' }, inventory: { version: '^1.0.0' }, progression: { version: '^1.0.0', optional: true }, location: { version: '^1.0.0', optional: true }, encounters: { version: '^1.0.0', optional: true }, 'encounter-records': { version: '^1.0.0', optional: true }
   } },
   configSchema: objectSchema({ container: idSchema, victorySource: { enum: ['auto', 'encounters', 'encounter-records'] } }, ['container']),
   stateSchema: objectSchema({ active: recordSchema(objectSchema({ definition: frozenQuestSchema, baselineWins: recordSchema(countSchema) })), completed: recordSchema(countSchema) }),
   initialState: () => ({ active: {}, completed: {} }), validate,
   migrate(previous) {
-    if (previous.moduleId !== 'quests.journal' || previous.version !== '1.0.0' || previous.stateVersion !== 1) throw new Error('不兼容的任务状态');
+    if (previous.moduleId !== 'quests.journal' || !['1.0.0', '1.1.0'].includes(previous.version) || previous.stateVersion !== 1) throw new Error('不兼容的任务状态');
     return previous.state;
   },
   commands: {

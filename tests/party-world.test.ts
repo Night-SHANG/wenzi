@@ -39,8 +39,8 @@ function finalState(world: World) {
   for (const item of ['badge', 'medal']) assert.deepEqual(world.query('inventory', 'count', { container: 'player', item }), { quantity: 1 });
 }
 test('two party clocks complete the hand-calculated 63-action loop with persistent wounds and paid revival', async () => {
-  assert.equal(builtinRegistry().catalog().length, 53);
-  assert.equal((await worldNames()).length, 14);
+  assert.equal(builtinRegistry().catalog().length, 63);
+  assert.equal((await worldNames()).length, 16);
   for (const name of ['party', 'party-continuous']) {
     const { pack, world } = await setup(name);
     assert.equal(pack.world.modules.length, 35); assert.equal(pack.demo.length, 63);

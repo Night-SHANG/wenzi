@@ -5,8 +5,9 @@ import { frontierModules } from './modules/frontier.ts';
 import { campaignModules } from './modules/campaign.ts';
 import { loadoutModules } from './modules/loadout.ts';
 import { partyModules } from './modules/party-world.ts';
+import { settlementModules } from './modules/settlement.ts';
 
 /** Convenience catalogue only: the runtime never imports this file. */
 export function builtinRegistry(): ModuleRegistry {
-  return new ModuleRegistry([...farmModules, ...adventureModules, ...frontierModules, ...campaignModules, ...loadoutModules, ...partyModules]);
+  return new ModuleRegistry([...farmModules, ...adventureModules, ...frontierModules, ...campaignModules, ...loadoutModules, ...partyModules, ...settlementModules]);
 }

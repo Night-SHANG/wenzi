@@ -173,7 +173,7 @@ test('quests reject ambiguous/malformed records, explicitly retain legacy source
   fail(world, 'quests', 'turnIn', { quest: 'patrol' });
   const saved = world.snapshot(); saved.modules.quests!.definitionVersion = '1.0.0';
   const restored = restoreWorld(registry(), saved);
-  assert.equal(restored.snapshot().modules.quests!.definitionVersion, '1.1.0');
+  assert.equal(restored.snapshot().modules.quests!.definitionVersion, '1.2.0');
   assert.deepEqual(restored.snapshot().modules.quests!.state, saved.modules.quests!.state);
   saved.modules.quests!.definitionVersion = '0.9.0'; assert.throws(() => restoreWorld(registry(), saved));
 });
