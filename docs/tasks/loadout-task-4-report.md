@@ -21,6 +21,14 @@ smoke-built扩展为预期23组：12世界、既有外部/作者/交互8组，�
 
 README、作者指南、loadout指南、设计/计划/执行决定与THIRD_PARTY补充准确接口、来源固定提交、时间边界、冻结状态与当前范围。上游研究已实际打开CDDA/FLARE源码；失败原子性与等号到期是本工程的独立适配，未复制来源代码/数据。
 
-## 尚待最终门禁
+## 最终源码门禁与审查
 
-整批Preflight/typecheck/build/compiled smoke、独立最终审查、解包哈希/源码/Git历史核验、非强制main发布及Notion实际结果同步；结果见后续进度更新。
+2026-11-07 11:51北京时间：完整Preflight6/6、318/318行为测试、0失败/取消/跳过，严格类型检查、12个世界真实运行恢复全部通过。2026-11-07 11:52：TypeScript构建与23/23真实编译运行通过，完整进程退出0。
+
+源码指纹b94184a36fceb42b628a22459eec50afe7eda7a5d1142edc704a09e055fc5327；运行指纹a6c7d290b9a24d1ffa9e1aeef9a4e2dd4dc2b0eb0901c457bc7be9e93cecbbd5。npm输出有升级提示和环境http-proxy配置告警；测试/TypeScript没有失败，未改系统环境或为提示更新依赖。
+
+2026-11-07 11:58北京时间：fresh整分支源码审查独立重算指纹一致，Task4specPASS/qualityAPPROVED/wholebranchYES，无新增发现；保留Task3长行可读性Minor。报告见[loadout-final-review.md](loadout-final-review.md)。源代码/测试/配置自ec075ee起冻结，随后只归档文档，无需重跑未变化的验证输入。
+
+## 最终交付顺序
+
+本文归档提交后生成工程包并独立核验解包/全部文件哈希/双指纹/23组实际CLI/Git历史与跟踪源码；随后按expected-main和force=false发布，立即报告用户，不轮询新CI。包哈希、准确提交映射与外部交付结果保存在Notion专题11，避免自引用哈希循环。此处不把尚未发生的外部操作记为完成。
