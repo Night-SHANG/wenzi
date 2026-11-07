@@ -1,0 +1,230 @@
+{
+  "recordedAtBeijing": "2026-11-07T13:01:38+08:00",
+  "preflight": {
+    "timestamp": "2026-11-07T04:55:27.281Z",
+    "node": "24.22.1",
+    "ok": true,
+    "status": "passed",
+    "checks": [
+      {
+        "name": "运行时与固定依赖",
+        "ok": true,
+        "ms": 0
+      },
+      {
+        "name": "世界数据与项目文件",
+        "ok": true,
+        "ms": 2
+      },
+      {
+        "name": "宿主不依赖玩法或平台实现",
+        "ok": true,
+        "ms": 38
+      },
+      {
+        "name": "TypeScript 严格类型检查",
+        "ok": true,
+        "ms": 1539
+      },
+      {
+        "name": "自动行为测试",
+        "ok": true,
+        "ms": 80476
+      },
+      {
+        "name": "全部世界实际运行与恢复",
+        "ok": true,
+        "ms": 2704
+      }
+    ],
+    "fingerprint": {
+      "version": 1,
+      "scope": "preflight",
+      "sha256": "c4cbbd6fb53450cb873a4e35279904b26dc76b8430e9198408b15ab9c7453112"
+    }
+  },
+  "builtSmoke": {
+    "timestamp": "2026-11-07T04:55:55.505Z",
+    "node": "24.22.1",
+    "ok": true,
+    "status": "passed",
+    "results": [
+      {
+        "world": "campaign",
+        "actions": 46,
+        "revision": 46,
+        "ok": true
+      },
+      {
+        "world": "campaign-continuous",
+        "actions": 46,
+        "revision": 46,
+        "ok": true
+      },
+      {
+        "world": "farm",
+        "actions": 4,
+        "revision": 4,
+        "ok": true
+      },
+      {
+        "world": "farm-continuous",
+        "actions": 4,
+        "revision": 4,
+        "ok": true
+      },
+      {
+        "world": "farm-greenhouse",
+        "actions": 4,
+        "revision": 4,
+        "ok": true
+      },
+      {
+        "world": "farm-physical",
+        "actions": 4,
+        "revision": 4,
+        "ok": true
+      },
+      {
+        "world": "frontier",
+        "actions": 16,
+        "revision": 16,
+        "ok": true
+      },
+      {
+        "world": "frontier-continuous",
+        "actions": 16,
+        "revision": 16,
+        "ok": true
+      },
+      {
+        "world": "loadout",
+        "actions": 48,
+        "revision": 48,
+        "ok": true
+      },
+      {
+        "world": "loadout-continuous",
+        "actions": 48,
+        "revision": 48,
+        "ok": true
+      },
+      {
+        "world": "party",
+        "actions": 63,
+        "revision": 63,
+        "ok": true
+      },
+      {
+        "world": "party-continuous",
+        "actions": 63,
+        "revision": 63,
+        "ok": true
+      },
+      {
+        "world": "story",
+        "actions": 2,
+        "revision": 2,
+        "ok": true
+      },
+      {
+        "world": "tactics",
+        "actions": 6,
+        "revision": 6,
+        "ok": true
+      },
+      {
+        "world": "external-author-module",
+        "actions": 2,
+        "revision": 2,
+        "ok": true
+      },
+      {
+        "world": "authored-farm",
+        "actions": 4,
+        "revision": 4,
+        "ok": true
+      },
+      {
+        "world": "authored-external-module",
+        "actions": 2,
+        "revision": 2,
+        "ok": true
+      },
+      {
+        "world": "authored-frontier",
+        "actions": 16,
+        "revision": 16,
+        "ok": true
+      },
+      {
+        "world": "interactive-frontier-save-load",
+        "actions": 18,
+        "revision": 16,
+        "ok": true
+      },
+      {
+        "world": "authored-campaign",
+        "actions": 46,
+        "revision": 46,
+        "ok": true
+      },
+      {
+        "world": "interactive-campaign-save-load",
+        "actions": 48,
+        "revision": 46,
+        "ok": true
+      },
+      {
+        "world": "interactive-campaign-arbitrary-ids",
+        "actions": 46,
+        "revision": 46,
+        "ok": true
+      },
+      {
+        "world": "authored-loadout",
+        "actions": 48,
+        "revision": 48,
+        "ok": true
+      },
+      {
+        "world": "interactive-loadout-active-save-load",
+        "actions": 71,
+        "revision": 48,
+        "ok": true
+      },
+      {
+        "world": "interactive-loadout-arbitrary-ids",
+        "actions": 48,
+        "revision": 48,
+        "ok": true
+      },
+      {
+        "world": "authored-party",
+        "actions": 63,
+        "revision": 63,
+        "ok": true
+      },
+      {
+        "world": "interactive-party-active-save-load",
+        "actions": 99,
+        "revision": 63,
+        "ok": true
+      },
+      {
+        "world": "interactive-party-arbitrary-ids",
+        "actions": 63,
+        "revision": 63,
+        "ok": true
+      }
+    ],
+    "fingerprint": {
+      "version": 1,
+      "scope": "built-smoke",
+      "sha256": "d0f3d5da62f20acc82493936c32ea3619dbb1322e7295432157cf8357a67aab7"
+    }
+  },
+  "buildExitCode": 0,
+  "firstGateFailurePreserved": "artifacts/party-preflight-first.log and Task3 report; TS2322 fixed in 3e34682",
+  "releaseRecord": "https://app.notion.com/p/411fbd029cd281fcae79c12de6770d8c"
+}
