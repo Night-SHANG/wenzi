@@ -261,10 +261,10 @@ export const partyBattleModule: ModuleDefinition = {
     list: { schema: emptySchema, execute(ctx) {
       const state = ctx.state<State>(), time = now(ctx, state), place = location(ctx), party = readPartyStatus(ctx);
       const ready = !state.battle && sessionOwner(ctx) === null && party.active.some(id => member(ctx, id).hp > 0);
-      return { encounters: catalog(ctx).map(value => {
+      return json({ encounters: catalog(ctx).map(value => {
         const remainingSeconds = Math.max(0, (own(state.cooldowns, value.id)?.readyAt ?? 0) - time);
         return { ...value, available: ready && place === value.location && remainingSeconds === 0, remainingSeconds };
-      }) };
+      }) });
     } }
   }
 };
