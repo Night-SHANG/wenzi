@@ -161,3 +161,27 @@ test('explicit old duel migration preserves active and victory state and rejects
 test('attributes provider can supply combat values absent from base progression',()=>{
  const attrs:ModuleDefinition={manifest:{id:'test.attributes.only',title:'Independent attributes',version:'1.0.0',apiVersion:1,stateVersion:1,provides:{attributes:'1.0.0'}},initialState:()=>({}),queries:{status:{execute:()=>({values:{attack:6,defense:2}})}}};const d=definition();instance(d,'progression').config.override={experience:0,level:1,floorExperience:0,nextExperience:null,values:{maxHp:20}};d.modules.push({id:'attributes',module:'test.attributes.only',config:{}});const w=createWorld(registry([attrs]),d);ok(w,'encounters','start',{encounter:'wolf'});ok(w,'encounters','attack');assert.equal(status(w).battle.enemyHp,6);assert.deepEqual(w.query('vitals','status'),{hp:17,maxHp:20});
 });
+
+const sessionFixture: ModuleDefinition = {
+ manifest:{id:'test.session',title:'Session',version:'1.0.0',apiVersion:1,stateVersion:1,provides:{'battle-session':'1.0.0'}}, initialState:()=>({owner:null}),
+ queries:{status:{execute:ctx=>ctx.state<JsonObject>()}},
+ commands:{acquire:{execute(ctx,input){if(ctx.state<{owner:string|null}>().owner!==null)ctx.fail('BUSY','busy');ctx.write({owner:input.owner!});return {owner:input.owner!};}},release:{execute(ctx,input){if(ctx.config.failRelease)ctx.fail('FAIL_RELEASE','release');if(ctx.state<{owner:string|null}>().owner!==input.owner)ctx.fail('OWNER','owner');ctx.write({owner:null});return {owner:null};}}}
+};
+function sessionWorld(failRelease=false){const d=definition();d.modules.push({id:'session',module:'test.session',config:{failRelease}});instance(d,'encounters').bindings!['battle-session']='session';return createWorld(registry([sessionFixture]),d);}
+test('duel acquires exact session through active and pending phases and releases only on completion',()=>{
+ const w=sessionWorld();ok(w,'encounters','start',{encounter:'wolf'});assert.deepEqual(w.query('session','status'),{owner:'encounters'});fail(w,'session','release',{owner:'other'});for(let i=0;i<3;i++)ok(w,'encounters','attack');assert.deepEqual(w.query('session','status'),{owner:'encounters'});ok(w,'encounters','claim');assert.deepEqual(w.query('session','status'),{owner:null});
+});
+test('failed session release rolls back rewards and pending state; occupied start is unchanged',()=>{
+ const w=sessionWorld(true);victory(w);fail(w,'encounters','claim');assert.deepEqual(count(w),{quantity:0});assert.equal((w.query('progression','status') as any).experience,0);fail(w,'encounters','retreat');
+ const occupied=sessionWorld();ok(occupied,'session','acquire',{owner:'someone'});fail(occupied,'encounters','start',{encounter:'wolf'});
+});
+test('duel 1.0 and 1.1 migrate to 1.2 and adding blank session to old active world fails closed',()=>{
+ const w=setup();victory(w);for(const version of ['1.0.0','1.1.0']){const save=w.snapshot();save.modules.encounters!.definitionVersion=version;const restored=restoreWorld(registry(),save);assert.equal(restored.snapshot().modules.encounters!.definitionVersion,'1.2.0');assert.deepEqual(status(restored),status(w));}
+ const before=w.snapshot(),d=w.definition;d.modules.push({id:'session',module:'test.session',config:{}});instance(d,'encounters').bindings!['battle-session']='session';assert.throws(()=>reconfigureWorld(registry([sessionFixture]),w,d));assert.deepEqual(w.snapshot(),before);
+});
+
+test('shared reward transfer rejects valid-looking returns without actual inventory or XP writes',()=>{
+ const liarInventory:ModuleDefinition={manifest:{id:'test.liar.inventory',title:'Liar inventory',version:'1.0.0',apiVersion:1,stateVersion:1,provides:{inventory:'1.0.0'}},initialState:()=>({}),queries:{list:{execute:()=>({items:[],limits:{}})},count:{execute:()=>({quantity:0})}},commands:{add:{execute:(_ctx,input)=>({quantity:input.quantity!})}}};
+ const liarProgression:ModuleDefinition={...progression,manifest:{...progression.manifest,id:'test.liar.xp'},commands:{gain:{execute:(_ctx,input)=>({experience:input.amount!,level:1,floorExperience:0,nextExperience:null,values:{attack:4,defense:1,maxHp:20}})}}};
+ for(const [id,module] of [['inventory',liarInventory],['progression',liarProgression]] as const){const d=definition();instance(d,id).module=module.manifest.id;instance(d,id).config={};const w=createWorld(registry([module]),d);victory(w);fail(w,'encounters','claim');assert.equal(status(w).phase,'victory');assert.deepEqual(w.query('encounters','records'),{wins:{}});}
+});
