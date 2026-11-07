@@ -52,12 +52,17 @@ const questNames: Record<string, string> = { available: '已解锁', locked: '�
 /** Composes another text view through its public capability; owns no gameplay state. */
 export const campaignViewModule: ModuleDefinition = {
   manifest: {
-    id: 'view.campaign.text', title: '小镇冒险文字视图', version: '1.0.0', apiVersion: 1, stateVersion: 1,
+    id: 'view.campaign.text', title: '小镇冒险文字视图', version: '1.1.0', apiVersion: 1, stateVersion: 1,
     provides: { 'text-view': '1.0.0' },
-    requires: { 'text-view': requirement, progression: requirement, vitals: requirement, recovery: requirement, encounters: requirement, quests: requirement },
+    requires: { 'text-view': requirement, progression: requirement, vitals: requirement, recovery: requirement, encounters: requirement, quests: requirement, attributes: { ...requirement, optional: true } },
   },
   configSchema: objectSchema({ title: { type: 'string', minLength: 1 } }),
   stateSchema: emptySchema, initialState: () => ({}),
+  migrate(previous) {
+    if (previous.moduleId !== 'view.campaign.text' || previous.version !== '1.0.0' || previous.stateVersion !== 1
+      || !previous.state || typeof previous.state !== 'object' || Array.isArray(previous.state) || Object.keys(previous.state).length) throw new Error('不兼容的小镇文字视图状态');
+    return previous.state;
+  },
   queries: { render: { schema: emptySchema, execute(ctx) {
     const base = object(ctx, ctx.query('text-view', 'render'), '基础视图');
     text(ctx, base.title, '基础视图标题');
@@ -65,7 +70,7 @@ export const campaignViewModule: ModuleDefinition = {
     const baseLines = base.lines.map(value => text(ctx, value, '基础视图行'));
     const progression = object(ctx, ctx.query('progression', 'status'), '成长');
     const experience = safeCount(ctx, progression.experience as number, '经验'), level = positive(ctx, progression.level, '等级');
-    const values = object(ctx, progression.values, '属性');
+    const values = object(ctx, ctx.has('attributes') ? object(ctx, ctx.query('attributes', 'status'), '有效属性').values : progression.values, '属性');
     const attack = positive(ctx, values.attack, '攻击'), defense = safeCount(ctx, values.defense as number, '防御');
     let next = '已达当前最高等级';
     if (progression.nextExperience !== null) {

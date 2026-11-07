@@ -22,7 +22,7 @@ try {
   const inputs=fingerprint('built-smoke');
   temporary=mkdtempSync(join(tmpdir(),'text-world-built-'));
   const names=run(['list','--json']);
-  assert.ok(Array.isArray(names)&&['frontier','frontier-continuous','campaign','campaign-continuous'].every(name=>names.includes(name)));
+  assert.ok(Array.isArray(names)&&['frontier','frontier-continuous','campaign','campaign-continuous','loadout','loadout-continuous'].every(name=>names.includes(name)));
   for(const name of names){
     const save=join(temporary,`${name}.json`);
     const output=run(['demo',name,'--json','--save',save]);
@@ -36,7 +36,7 @@ try {
   assert.equal(custom.snapshot.modules.research.state.progress,7);
   results.push({world:'external-author-module',actions:custom.results.length,revision:custom.snapshot.revision,ok:true});
   const catalog=run(['modules','--json']);
-  assert.ok(['quests.journal','encounters.duel','progression.track'].every(id=>catalog.some(row=>row.manifest.id===id)));
+  assert.ok(['quests.journal','encounters.duel','progression.track','equipment.slots','effects.timed','skills.combat'].every(id=>catalog.some(row=>row.manifest.id===id)));
   const forked=join(temporary,'my authored farm.json');
   const edited=join(temporary,'authored-farm.json');
   assert.equal(run(['fork','farm','--id','author.smoke-farm','--out',forked,'--json']).ok,true);
@@ -146,9 +146,73 @@ try {
   assert.equal(renamedSnapshot.modules[ids.get('vitals')].state.hp,22);
   assert.deepEqual(renamedSnapshot.modules[ids.get('quests')].state.completed,{supply:1,patrol:1,guard:1});
   results.push({world:'interactive-campaign-arbitrary-ids',actions:renamed.demo.length,revision:renamedSnapshot.revision,ok:true});
+
+  const loadoutFork=join(temporary,'my loadout.json'), loadoutEdited=join(temporary,'loadout-edited.json'), loadoutPatch=join(temporary,'loadout.patch.json');
+  assert.equal(run(['fork','loadout','--id','author.smoke-loadout','--out',loadoutFork,'--json']).ok,true);
+  const loadoutPack=JSON.parse(readFileSync(loadoutFork,'utf8'));
+  const skillIndex=loadoutPack.world.modules.findIndex(instance=>instance.id==='skill-rules');
+  assert.ok(skillIndex>=0);
+  writeFileSync(loadoutPatch,JSON.stringify([
+    {op:'test',path:`/world/modules/${skillIndex}/id`,value:'skill-rules'},
+    {op:'replace',path:`/world/modules/${skillIndex}/config/skills/cleave/costs`,value:{}}
+  ]));
+  assert.equal(run(['patch',loadoutFork,'--patch',loadoutPatch,'--out',loadoutEdited,'--run-demo','--json']).ok,true);
+  assert.equal(run(['validate',loadoutEdited,'--run-demo','--json']).ok,true);
+  const authoredLoadout=run(['demo',loadoutEdited,'--json']);
+  assert.equal(authoredLoadout.snapshot.modules.inventory.state.containers.player.spark,3);
+  assert.equal(authoredLoadout.snapshot.modules.progression.state.experience,105);
+  assert.equal(authoredLoadout.snapshot.modules.vitals.state.hp,34);
+  assert.deepEqual(authoredLoadout.snapshot.modules.effects.state.active,{});
+  results.push({world:'authored-loadout',actions:authoredLoadout.results.length,revision:authoredLoadout.snapshot.revision,ok:true});
+
+  const originalLoadout=JSON.parse(readFileSync(resolve('worlds/loadout.json'),'utf8'));
+  const checkpointIndex=originalLoadout.demo.findIndex(command=>command.target==='skills')+1;
+  assert.ok(checkpointIndex>0);
+  const loadoutCheckpoint=join(temporary,'loadout active.save.json'), loadoutFinal=join(temporary,'loadout final.save.json'), loadoutResumed=join(temporary,'loadout resumed.save.json');
+  const initialCommands=originalLoadout.demo.slice(0,checkpointIndex).map(command=>`do ${JSON.stringify(command)}`);
+  const laterCommands=originalLoadout.demo.slice(checkpointIndex).map(command=>`do ${JSON.stringify(command)}`);
+  const loadoutCommands=[...initialCommands,`save ${loadoutCheckpoint}`,...laterCommands,`save ${loadoutFinal}`,`load ${loadoutCheckpoint}`,...laterCommands,`save ${loadoutResumed}`,'exit',''];
+  const loadoutPlay=spawnSync(process.execPath,[cli,'play','loadout'],{cwd:temporary,input:loadoutCommands.join('\n'),encoding:'utf8',timeout:20000});
+  assert.equal(loadoutPlay.status,0,loadoutPlay.stderr||String(loadoutPlay.error));
+  assert.doesNotMatch(loadoutPlay.stdout,/操作未生效|未完成：/);
+  assert.match(loadoutPlay.stdout,/已恢复：/);
+  const midLoadout=JSON.parse(readFileSync(loadoutCheckpoint,'utf8'));
+  assert.equal(midLoadout.modules.encounters.state.battle.enemyHp,1);
+  assert.equal(midLoadout.modules.vitals.state.hp,17);
+  assert.equal(midLoadout.modules.effects.state.active.rally.expiresAt,70);
+  assert.equal(midLoadout.modules.skills.state.cooldowns.cleave.readyAt,60);
+  assert.equal(midLoadout.modules.equipment.state.slots.hand.id,'sword');
+  const finalLoadout=JSON.parse(readFileSync(loadoutFinal,'utf8'));
+  assert.equal(finalLoadout.modules.progression.state.experience,105);
+  assert.equal(finalLoadout.modules.vitals.state.hp,34);
+  assert.equal(finalLoadout.modules.clock.state.elapsedSeconds,90);
+  assert.equal(finalLoadout.modules.inventory.state.containers.player.spark,0);
+  assert.deepEqual(JSON.parse(readFileSync(loadoutResumed,'utf8')),finalLoadout);
+  results.push({world:'interactive-loadout-active-save-load',actions:originalLoadout.demo.length+laterCommands.length,revision:finalLoadout.revision,ok:true});
+
+  const quotedLoadout=structuredClone(originalLoadout), quotedLoadoutFile=join(temporary,'quoted loadout.json'), quotedLoadoutSave=join(temporary,'quoted loadout.save.json');
+  const loadoutIds=new Map(quotedLoadout.world.modules.map(instance=>[instance.id,`模组 "${instance.id}" 😀`]));
+  for(const instance of quotedLoadout.world.modules){
+    instance.id=loadoutIds.get(instance.id);
+    for(const key of Object.keys(instance.bindings??{}))instance.bindings[key]=loadoutIds.get(instance.bindings[key]);
+  }
+  quotedLoadout.world.entryView.instance=loadoutIds.get(quotedLoadout.world.entryView.instance);
+  for(const command of quotedLoadout.demo)command.target=loadoutIds.get(command.target);
+  writeFileSync(quotedLoadoutFile,JSON.stringify(quotedLoadout));
+  const quotedCommands=quotedLoadout.demo.map(command=>`do ${JSON.stringify(command)}`);
+  quotedCommands.push(`save ${quotedLoadoutSave}`,'exit','');
+  const quotedPlay=spawnSync(process.execPath,[cli,'play',quotedLoadoutFile],{cwd:temporary,input:quotedCommands.join('\n'),encoding:'utf8',timeout:20000});
+  assert.equal(quotedPlay.status,0,quotedPlay.stderr||String(quotedPlay.error));
+  assert.doesNotMatch(quotedPlay.stdout,/操作未生效|未完成：/);
+  const quotedSnapshot=JSON.parse(readFileSync(quotedLoadoutSave,'utf8'));
+  assert.equal(quotedSnapshot.modules[loadoutIds.get('progression')].state.experience,105);
+  assert.equal(quotedSnapshot.modules[loadoutIds.get('vitals')].state.hp,34);
+  assert.equal(quotedSnapshot.modules[loadoutIds.get('inventory')].state.containers.player.spark,0);
+  assert.deepEqual(quotedSnapshot.modules[loadoutIds.get('encounters')].state.wins,{wolf:2,raider:1});
+  results.push({world:'interactive-loadout-arbitrary-ids',actions:quotedLoadout.demo.length,revision:quotedSnapshot.revision,ok:true});
   assert.deepEqual(fingerprint('built-smoke'),inputs,'Verification inputs changed during built smoke');
   report('passed',{fingerprint:inputs});
-  console.log('构建后的 JS、跨目录启动、世界创作、交互任务战斗成长、任意ID与文件存档验证通过');
+  console.log('构建后的 JS、世界创作、装备技能联动、活动战斗存档恢复与任意ID验证通过');
 } catch(error) {
   report('failed',{error:String(error)});
   throw error;

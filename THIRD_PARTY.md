@@ -54,6 +54,23 @@ Wesnoth 的上述文件头与 [COPYING](https://github.com/wesnoth/wesnoth/blob/
 
 来源任务流程不提供本项目的跨模块原子事务保证。当前战斗领取与任务交付的完整回滚由已实现的通用宿主负责；物品、经验、生命和时间仍各自只有一个绑定能力提供者持有权威状态。详见 [任务冒险指南](docs/campaign.md)。
 
+## v0.7 装备、技能与状态效果采用范围
+
+本批针对既有模块继续查阅成熟实现，未引入新运行依赖。以下源码按固定提交实际核查，新增 TypeScript 模块独立实现；没有复制或翻译来源源码、游戏文本、配置数据集、素材或成套数值。
+
+| 来源与固定提交 | 实际文件与行为 | 本工程采用及明确差异 |
+| --- | --- | --- |
+| CDDA `06be12f9884d82d387cb6b38dc549eca71c3835a` | [character_attire.cpp](https://github.com/CleverRaven/Cataclysm-DDA/blob/06be12f9884d82d387cb6b38dc549eca71c3835a/src/character_attire.cpp) 检查装备冲突与数量限制；[creature.cpp](https://github.com/CleverRaven/Cataclysm-DDA/blob/06be12f9884d82d387cb6b38dc549eca71c3835a/src/creature.cpp) 按效果ID和身体部位查找，独立处理时长与强度 | 借鉴资格校验与效果事实的职责划分。当前每效果ID一份，不实现身体部位或强度叠层；装备物品与背包分清归属，容量失败回滚由本工程库存/宿主负责 |
+| CDDA 同提交 | [effect.cpp](https://github.com/CleverRaven/Cataclysm-DDA/blob/06be12f9884d82d387cb6b38dc549eca71c3835a/src/effect.cpp) 的decay先检查时长<=0，否则减一回合 | 本工程使用累计模拟秒和绝对expiresAt，恰好等于即失效；不能宣称等同来源回合边界 |
+| FLARE `f9a17a266293a897a1d7eae2d54408b0de39af27` | [StatBlock.cpp](https://github.com/flareteam/flare-engine/blob/f9a17a266293a897a1d7eae2d54408b0de39af27/src/StatBlock.cpp) 的canUsePower检查资源、状态与装备标签；[Avatar.cpp](https://github.com/flareteam/flare-engine/blob/f9a17a266293a897a1d7eae2d54408b0de39af27/src/Avatar.cpp) 分别维护技能冷却 | 当前技能模块实时查询等级/装备标签/库存，并记录每技能的模拟秒冷却；不引入Avatar、动画帧、碰撞、UI或另一套资源状态 |
+| FLARE 同提交 | [EffectManager.cpp](https://github.com/flareteam/flare-engine/blob/f9a17a266293a897a1d7eae2d54408b0de39af27/src/EffectManager.cpp) 汇总有效实例；非堆叠效果比较时长/强度，有限堆叠会淘汰旧实例 | 采用“实例事实→重新计算属性”职责，refresh/extend独立为可替换策略；不声称完整复刻FLARE叠层/护盾规则 |
+
+关键失败语义已经交叉核对：FLARE的Avatar在调用activate后设置冷却，而 [PowerManager.cpp](https://github.com/flareteam/flare-engine/blob/f9a17a266293a897a1d7eae2d54408b0de39af27/src/PowerManager.cpp) 的activate可能因资源或目标条件返回false。调用点没有使用这个返回值，因此不能把“失败施法不耗冷却”归因于FLARE。本项目通过已有跨模块事务，把物品消耗、效果、战斗和冷却全部回滚，是独立适配的行为。
+
+CDDA主项目许可仍为上述CC-BY-SA-3.0。FLARE的实际文件头声明GPL-3.0-or-later，[COPYING](https://github.com/flareteam/flare-engine/blob/f9a17a266293a897a1d7eae2d54408b0de39af27/COPYING) 提供GPL v3正文。这是来源许可记录，不表示其代码已进入本工程。CDDA来自原bobeff发现入口；FLARE为本批补充核对的实现，没有把它误称为当前列表中的条目。
+
+具体能力、状态归属、时间边界与失败路径见 [装备技能指南](docs/loadout.md)。
+
 ## 主项目发布许可
 
 主工程目前是用户的独立开发工程，package.json 标记 private / UNLICENSED；尚未替用户选择对外开源许可。此标记不改变上面第三方依赖的许可。后续确实移植其他来源的源码时，要按具体文件重新记录组合和分发条件。

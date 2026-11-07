@@ -64,6 +64,20 @@ do {"target":"地图 \"节点\"","action":"move","input":{"to":"forest"}}
 
 探索视图升级到1.0.1并显式接受原1.0.0的空状态；这不是把任意旧状态清空的通用迁移。完整的新能力接口、冻结任务与战利品语义见 [campaign.md](campaign.md)。
 
+v0.7 的 `view.loadout.text` 继续组合小镇视图并展示装备、属性来源、效果剩余秒数与技能可用原因。`view.campaign.text` 1.1.0 可绑定独立 attributes，未绑定时保持原成长属性；同样只接受准确的旧版空状态。`encounters.duel` 1.1.0 增加 strike 和可选 attributes，旧战斗/待领奖/冷却/战绩通过显式1.0.0迁移保留。两种 effect-duration 策略支持准确版本的空状态互换，不重算已有效果到期时间。
+
+装备和技能创作示例：
+
+```bash
+node dist/cli/index.js describe equipment.slots --json
+node dist/cli/index.js describe skills.catalog --json
+node dist/cli/index.js fork loadout --id author.my-loadout --out my-loadout.json
+node dist/cli/index.js validate my-loadout.json --run-demo --json
+node dist/cli/index.js play my-loadout.json
+```
+
+可以修改槽位、装备条款、技能资格/消耗/冷却、效果目录和持续时间策略。当前 attributes.additive 的 keys 指定允许修改的属性；示范只有 attack/defense，非法 maxHp 修改会明确拒绝，不隐式改变生命上限。技能模块依赖 encounters@^1.1.0 的 strike 语义，不能把只同名的旧1.0.0能力当作等价替代。完整契约、时钟单位与已有状态处理见 [loadout.md](loadout.md)。
+
 ## 选择最小的独立职责
 
 一个模块可以提供一项能力，也可以组合多个子模块。判断依据是能否独立替换或扩展，不要求把每个函数做成插件。任意新系统都适用这条原则，代码没有预先穷举玩法类型。

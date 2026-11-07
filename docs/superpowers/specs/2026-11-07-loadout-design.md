@@ -40,6 +40,7 @@
 - refresh 为 max(now+durationSeconds, currentExpiresAt 或0)，保持更长的已有剩余时间。
 - extend 为 max(now, currentExpiresAt 或now)+durationSeconds。
 - 两者独立可替换；currentExpiresAt 可以是过去时间。拒绝溢出与正时长精度消失；刷新也要验证 now+duration 本身能前进，不能用长旧时长掩盖精度错误。
+- 两种策略显式互相迁移：仅接受这两个准确定义ID、version1.0.0/stateVersion1及空对象状态；不清空未知历史。已存在效果的截止时间不变，下一次 apply 才使用新策略。
 
 `effects.timed`，导出 effectsModule，提供 effects；requires effect-rule/effect-duration/time。config `{}`；state `{observedAt:0,active:Record<id,{id,name,modifiers,startedAt,expiresAt}>}`。
 
@@ -80,7 +81,7 @@
 
 初始演示数据（独立手算，不从实现推导）：在 campaign 原有物品之外加训练剑1（hand，attack+2，tag blade）、猎刀1（hand，attack+1，tag blade）、皮甲1（body，defense+1）、火花石3。振奋效果 duration20，attack+2；破势技能 minLevel1，requiredTags[blade]，costs火花石1，cooldown10，attackBonus3，effect振奋。技能列表另含重击 minLevel2，无消耗、无效果、bonus2、cooldown10。
 
-完整路线保留原采集制作和三项任务：前期装备剑/甲；狼战第一次用破势（有效攻击8+bonus3，对12HP狼造成11，再受3伤），普通攻击结束；等10秒第二次破势一击胜利（等级2有效攻击10+3）；再等10秒使技能就绪，回镇交巡查、恢复、接守卫；袭击者第一击破势（有效攻击10+3-防御2=11），随后普通攻击两次（各8）结束。以原 raider HP/attack 为准，若手算发现当前原配置不符，则在实施前把完整字面路线与预期写入 Task4 测试并记录调整。
+实施前核对原数据：袭击者HP24、攻击8、防御1。完整48动作路线保留原采集制作和三项任务：先装备剑/甲、换猎刀、换回剑（4动作）；狼战第一次用破势（攻击8+bonus3，狼余HP1，玩家受3伤到17），普通攻击结束；等10秒第二次破势一击胜利（等级2攻击10+3）；再等10秒使技能就绪，回镇交巡查并恢复到26HP；袭击者第一击破势造成12伤害并被反击5，第二击重击造成11并再受5，第三击普通攻击结束，当前HP16。完成任务升到3级并用第二份药剂恢复到34HP，出售原战利品得到金币16；最后推进20秒到模拟时间90，让振奋准确到期。最终经验105/等级3/HP34/34/金币16/攻击10/防御4，火花石0，剑甲仍装备，猎刀在包；狼胜利2/袭击者1，三任务各完成1。新世界背包10格以容纳额外装备与任务物品；旧世界8格不变。
 
 正常路径：物品从背包转入装备→效果与装备增加实际战斗数值→技能消费一次资源并击败敌人→领取原有奖励与任务→到期数值还原→保存恢复可继续。失败路径：满背包卸装、缺少标签/等级/材料/冷却、效果策略或战斗拒绝，完整状态不变。长期路径：换装备/规则目录只影响下次新动作，已有冻结装备/效果/冷却保留；更换两种时钟保留累计秒数；保存活动战斗、效果和冷却再恢复后结果一致。
 

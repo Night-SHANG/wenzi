@@ -29,3 +29,9 @@ Recorded2026-11-07 11:34Beijing(UTC+08). Branch feat/loadout-skills; base d744c2
 ## Dispatch
 
 Task1 equipment, Task2 effects/attributes, Task3 skills/duel, Task4 root integration: prepared against binding spec. Initial review/fix and final gates pending.
+
+Root integration RED:8 behavioral failures (7 missing loadout discovery,1 missing campaign-view migration), no import failure. Before creating content, inspected actual raider24HP/8attack/1defense and pinned48-action literal outcome105XP/L3/HP34/34/coins16/time90/A10/D4. Two independent skills used;3spark consumed. Added strict empty-state symmetric effect-duration migration to make stated strategy replacement concrete; Task2 notified before implementation.
+
+Task1 committededcbfae focused14/14; Task2 committedb9b1015 focused25/25; Task3 committeda094a0d focused37/37. All three independent scoped reviews PASS/spec+quality; no Critical/Important findings. Task3 one Minor dense-line readability suggestion accepted for next related edit, no unnecessary final formatting churn.
+
+Root first actual composition7/8 passed; failure traced to test misuse of parseActionCommand with leadingdo prefix, fixed test-only call to match existing contract. Extended meaningful integration tests now10/10 at11:48Beijing. Both real clocks,48actions, activebattle/effects/cooldowns restore+swap, policy replacement, resource-exhausted repeatloop, authorpatch and malformed externalview data are exercised. Full gates and final independent review pending.
