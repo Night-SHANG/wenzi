@@ -22,13 +22,31 @@ try {
   const inputs=fingerprint('built-smoke');
   temporary=mkdtempSync(join(tmpdir(),'text-world-built-'));
   const names=run(['list','--json']);
-  assert.ok(Array.isArray(names)&&['frontier','frontier-continuous','campaign','campaign-continuous','loadout','loadout-continuous','party','party-continuous'].every(name=>names.includes(name)));
+  assert.ok(Array.isArray(names)&&['frontier','frontier-continuous','campaign','campaign-continuous','loadout','loadout-continuous','party','party-continuous','settlement','settlement-continuous'].every(name=>names.includes(name)));
+  assert.equal(names.length,16);
   for(const name of names){
     const save=join(temporary,`${name}.json`);
     const output=run(['demo',name,'--json','--save',save]);
     const restored=run(['inspect',save,'--json']);
     assert.deepEqual(restored,output.snapshot);
     assert.deepEqual(JSON.parse(readFileSync(save,'utf8')),output.snapshot);
+    if(name==='settlement'||name==='settlement-continuous') {
+      assert.equal(output.results.length,32);
+      assert.equal(restored.definition.modules.length,21);
+      assert.deepEqual(restored.modules.wallet.state.balances,{player:2,supplier:4});
+      assert.equal(restored.modules.clock.state.elapsedSeconds,190);
+      assert.equal(restored.modules.inventory.state.containers.player.voucher,2);
+      assert.equal(restored.modules.inventory.state.containers.player.seed,0);
+      assert.equal(restored.modules.inventory.state.containers.player.turnip,0);
+      assert.equal(restored.modules.inventory.state.containers.player.meal,0);
+      assert.equal(restored.modules.inventory.state.containers.supplier.seed,1);
+      assert.equal(restored.modules.inventory.state.containers.supplier.turnip,0);
+      assert.deepEqual(restored.modules.shop.state,{trades:4});
+      assert.deepEqual(restored.modules.quests.state,{active:{},completed:{delivery:2}});
+      assert.equal(restored.modules.seedworks.state.job,null);
+      assert.equal(restored.modules.kitchen.state.job,null);
+      assert.deepEqual(restored.modules.crops.state.plots,{});
+    }
     results.push({world:name,actions:output.results.length,revision:restored.revision,ok:true});
     console.log(`构建产物通过：${name}`);
   }
@@ -36,6 +54,7 @@ try {
   assert.equal(custom.snapshot.modules.research.state.progress,7);
   results.push({world:'external-author-module',actions:custom.results.length,revision:custom.snapshot.revision,ok:true});
   const catalog=run(['modules','--json']);
+  assert.equal(catalog.length,63);
   assert.ok(['quests.journal','encounters.duel','progression.track','equipment.slots','effects.timed','skills.combat','party.roster','battles.party','initiative.speed','targeting.lowest-hp','vitals.party-member'].every(id=>catalog.some(row=>row.manifest.id===id)));
   const forked=join(temporary,'my authored farm.json');
   const edited=join(temporary,'authored-farm.json');
@@ -279,9 +298,106 @@ try {
   assert.equal(partyQuotedSnapshot.modules[partyIds.get('session')].state.owner,null);
   assert.deepEqual(partyQuotedSnapshot.modules[partyIds.get('battles')].state.wins,{wolves:2,raiders:1});
   results.push({world:'interactive-party-arbitrary-ids',actions:quotedParty.demo.length,revision:partyQuotedSnapshot.revision,ok:true});
+
+  const settlementFork=join(temporary,'my settlement.json');
+  const settlementEdited=join(temporary,'settlement-edited.json');
+  const settlementPatch=join(temporary,'settlement.patch.json');
+  assert.equal(run(['fork','settlement','--id','author.smoke-settlement','--out',settlementFork,'--json']).ok,true);
+  const settlementPack=JSON.parse(readFileSync(settlementFork,'utf8'));
+  const shopIndex=settlementPack.world.modules.findIndex(instance=>instance.id==='shop-rules');
+  assert.ok(shopIndex>=0);
+  writeFileSync(settlementPatch,JSON.stringify([
+    {op:'test',path:`/world/modules/${shopIndex}/id`,value:'shop-rules'},
+    {op:'replace',path:`/world/modules/${shopIndex}/config/shops/riverside/offers/seed/buy`,value:1}
+  ]));
+  assert.equal(run(['patch',settlementFork,'--patch',settlementPatch,'--out',settlementEdited,'--run-demo','--json']).ok,true);
+  assert.equal(run(['validate',settlementEdited,'--run-demo','--json']).ok,true);
+  const authoredSettlement=run(['demo',settlementEdited,'--json']);
+  assert.equal(authoredSettlement.results.length,32);
+  assert.deepEqual(authoredSettlement.snapshot.modules.wallet.state.balances,{player:4,supplier:2});
+  assert.equal(authoredSettlement.snapshot.modules.inventory.state.containers.player.voucher,2);
+  assert.equal(authoredSettlement.snapshot.modules.inventory.state.containers.supplier.seed,1);
+  assert.equal(authoredSettlement.snapshot.modules.inventory.state.containers.supplier.turnip,0);
+  assert.deepEqual(authoredSettlement.snapshot.modules.shop.state,{trades:4});
+  results.push({world:'authored-settlement',actions:authoredSettlement.results.length,revision:authoredSettlement.snapshot.revision,ok:true});
+
+  const originalSettlement=JSON.parse(readFileSync(resolve('worlds/settlement.json'),'utf8'));
+  const activeSettlement=structuredClone(originalSettlement);
+  const activeInventory=activeSettlement.world.modules.find(instance=>instance.id==='inventory');
+  activeInventory.config.containers.player.items.seed=1;
+  const activeSettlementFile=join(temporary,'active settlement.json');
+  writeFileSync(activeSettlementFile,JSON.stringify(activeSettlement));
+  const settlementCheckpoint=join(temporary,'settlement active.save.json');
+  const settlementFinal=join(temporary,'settlement final.save.json');
+  const settlementResumed=join(temporary,'settlement resumed.save.json');
+  const settlementBefore=activeSettlement.demo.slice(0,11).map(command=>`do ${JSON.stringify(command)}`);
+  settlementBefore.push('do {"target":"crops","action":"plant","input":{"plot":"extra box","crop":"turnip"}}');
+  const settlementAfter=activeSettlement.demo.slice(11).map(command=>`do ${JSON.stringify(command)}`);
+  const settlementCommands=[
+    ...settlementBefore,
+    `save ${settlementCheckpoint}`,
+    ...settlementAfter,
+    `save ${settlementFinal}`,
+    `load ${settlementCheckpoint}`,
+    ...settlementAfter,
+    `save ${settlementResumed}`,
+    'exit',
+    ''
+  ];
+  const settlementPlay=spawnSync(process.execPath,[cli,'play',activeSettlementFile],{cwd:temporary,input:settlementCommands.join('\n'),encoding:'utf8',timeout:20000});
+  assert.equal(settlementPlay.status,0,settlementPlay.stderr||String(settlementPlay.error));
+  assert.doesNotMatch(settlementPlay.stdout,/操作未生效|未完成：/);
+  assert.match(settlementPlay.stdout,/已恢复：/);
+  const midSettlement=JSON.parse(readFileSync(settlementCheckpoint,'utf8'));
+  assert.equal(midSettlement.modules.clock.state.elapsedSeconds,30);
+  assert.equal(midSettlement.modules.seedworks.state.job.readyAt,40);
+  assert.equal(midSettlement.modules.kitchen.state.job.readyAt,40);
+  assert.equal(midSettlement.modules.crops.state.plots['extra box'].progress,0);
+  assert.equal(midSettlement.modules.quests.state.active.delivery.definition.experience,0);
+  assert.deepEqual(midSettlement.modules.wallet.state.balances,{player:2,supplier:4});
+  const finalSettlement=JSON.parse(readFileSync(settlementFinal,'utf8'));
+  assert.equal(finalSettlement.modules.clock.state.elapsedSeconds,190);
+  assert.deepEqual(finalSettlement.modules.wallet.state.balances,{player:2,supplier:4});
+  assert.equal(finalSettlement.modules.inventory.state.containers.player.voucher,2);
+  assert.equal(finalSettlement.modules.inventory.state.containers.supplier.seed,1);
+  assert.equal(finalSettlement.modules.inventory.state.containers.supplier.turnip,0);
+  assert.equal(finalSettlement.modules.crops.state.plots['extra box'].progress,1);
+  assert.equal(finalSettlement.modules.seedworks.state.job,null);
+  assert.equal(finalSettlement.modules.kitchen.state.job,null);
+  assert.deepEqual(finalSettlement.modules.quests.state,{active:{},completed:{delivery:2}});
+  assert.deepEqual(JSON.parse(readFileSync(settlementResumed,'utf8')),finalSettlement);
+  results.push({world:'interactive-settlement-active-save-load',actions:activeSettlement.demo.length+1+settlementAfter.length,revision:finalSettlement.revision,ok:true});
+
+  const quotedSettlement=structuredClone(originalSettlement);
+  const quotedSettlementFile=join(temporary,'quoted settlement.json');
+  const quotedSettlementSave=join(temporary,'quoted settlement.save.json');
+  const settlementIds=new Map(quotedSettlement.world.modules.map(instance=>[instance.id,`城镇 "${instance.id}" 😀`]));
+  assert.equal(settlementIds.size,21);
+  for(const instance of quotedSettlement.world.modules) {
+    instance.id=settlementIds.get(instance.id);
+    for(const key of Object.keys(instance.bindings??{}))instance.bindings[key]=settlementIds.get(instance.bindings[key]);
+  }
+  quotedSettlement.world.entryView.instance=settlementIds.get(quotedSettlement.world.entryView.instance);
+  for(const command of quotedSettlement.demo)command.target=settlementIds.get(command.target);
+  writeFileSync(quotedSettlementFile,JSON.stringify(quotedSettlement));
+  const settlementQuotedCommands=quotedSettlement.demo.map(command=>`do ${JSON.stringify(command)}`);
+  settlementQuotedCommands.push(`save ${quotedSettlementSave}`,'exit','');
+  const settlementQuotedPlay=spawnSync(process.execPath,[cli,'play',quotedSettlementFile],{cwd:temporary,input:settlementQuotedCommands.join('\n'),encoding:'utf8',timeout:20000});
+  assert.equal(settlementQuotedPlay.status,0,settlementQuotedPlay.stderr||String(settlementQuotedPlay.error));
+  assert.doesNotMatch(settlementQuotedPlay.stdout,/操作未生效|未完成：/);
+  const settlementQuotedSnapshot=JSON.parse(readFileSync(quotedSettlementSave,'utf8'));
+  assert.deepEqual(settlementQuotedSnapshot.modules[settlementIds.get('wallet')].state.balances,{player:2,supplier:4});
+  assert.equal(settlementQuotedSnapshot.modules[settlementIds.get('inventory')].state.containers.player.voucher,2);
+  assert.equal(settlementQuotedSnapshot.modules[settlementIds.get('inventory')].state.containers.supplier.seed,1);
+  assert.deepEqual(settlementQuotedSnapshot.modules[settlementIds.get('shop')].state,{trades:4});
+  assert.deepEqual(settlementQuotedSnapshot.modules[settlementIds.get('quests')].state,{active:{},completed:{delivery:2}});
+  assert.equal(settlementQuotedSnapshot.modules[settlementIds.get('seedworks')].state.job,null);
+  assert.equal(settlementQuotedSnapshot.modules[settlementIds.get('kitchen')].state.job,null);
+  results.push({world:'interactive-settlement-arbitrary-ids',actions:quotedSettlement.demo.length,revision:settlementQuotedSnapshot.revision,ok:true});
+  assert.equal(results.length,33);
   assert.deepEqual(fingerprint('built-smoke'),inputs,'Verification inputs changed during built smoke');
   report('passed',{fingerprint:inputs});
-  console.log('构建后的 JS、世界创作、队伍与装备技能联动、活动战斗存档恢复与任意ID验证通过');
+  console.log('构建后的 JS、世界创作、队伍与装备技能联动、城镇经营、活动存档恢复与任意ID验证通过');
 } catch(error) {
   report('failed',{error:String(error)});
   throw error;

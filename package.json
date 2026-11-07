@@ -1,6 +1,6 @@
 {
   "name": "modular-text-world",
-  "version": "0.8.0-alpha.1",
+  "version": "0.9.0-alpha.1",
   "private": true,
   "description": "Independent modular text-world runtime and authoring contracts",
   "type": "module",

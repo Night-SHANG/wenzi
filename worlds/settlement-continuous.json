@@ -1,0 +1,591 @@
+{
+  "format": 1,
+  "world": {
+    "id": "world.settlement-continuous",
+    "title": "河岸城镇（连续时间）",
+    "version": "1.0.0",
+    "description": "同一有限经营闭环，使用按秒推进的连续时钟。每天60秒，每周3天，前两天的[10,50)营业；时间跳跃不会免费补货或补钱。",
+    "entryView": {
+      "instance": "seedworks-view",
+      "query": "render"
+    },
+    "modules": [
+      {
+        "id": "capacity",
+        "module": "capacity.slots",
+        "config": {}
+      },
+      {
+        "id": "inventory",
+        "module": "inventory.basic",
+        "config": {
+          "items": {
+            "seed": {
+              "name": "芜菁种子",
+              "weight": 1,
+              "volume": 1,
+              "length": 2
+            },
+            "turnip": {
+              "name": "芜菁",
+              "weight": 150,
+              "volume": 150,
+              "length": 100
+            },
+            "meal": {
+              "name": "芜菁餐食",
+              "weight": 300,
+              "volume": 300,
+              "length": 150
+            },
+            "voucher": {
+              "name": "订单凭证",
+              "weight": 1,
+              "volume": 1,
+              "length": 50
+            }
+          },
+          "containers": {
+            "player": {
+              "limits": {
+                "slots": 6
+              },
+              "items": {}
+            },
+            "supplier": {
+              "limits": {
+                "slots": 2
+              },
+              "items": {
+                "seed": 1
+              }
+            }
+          }
+        },
+        "bindings": {
+          "capacity": "capacity"
+        }
+      },
+      {
+        "id": "clock",
+        "module": "time.continuous",
+        "config": {}
+      },
+      {
+        "id": "growth",
+        "module": "growth.linear",
+        "config": {
+          "multiplier": 1
+        }
+      },
+      {
+        "id": "crops",
+        "module": "planting.basic",
+        "config": {
+          "container": "player",
+          "crops": {
+            "turnip": {
+              "name": "芜菁",
+              "seedItem": "seed",
+              "harvestItem": "turnip",
+              "durationSeconds": 20,
+              "yield": 3
+            }
+          }
+        },
+        "bindings": {
+          "inventory": "inventory",
+          "time": "clock",
+          "growth-rule": "growth"
+        }
+      },
+      {
+        "id": "location",
+        "module": "location.nodes",
+        "config": {
+          "start": "market",
+          "nodes": {
+            "market": {
+              "name": "河岸集市",
+              "description": "有限资金与货架的种子铺，两座工坊和餐食订单都在这里。",
+              "exits": [
+                "river"
+              ]
+            },
+            "river": {
+              "name": "河岸",
+              "description": "带着便携种植箱来到河边。移动和操作不自动推进时间，种植箱也可带回市场。",
+              "exits": [
+                "market"
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": "wallet",
+        "module": "wallet.accounts",
+        "config": {
+          "accounts": {
+            "player": {
+              "name": "玩家",
+              "coins": 2
+            },
+            "supplier": {
+              "name": "种子铺",
+              "coins": 4
+            }
+          }
+        }
+      },
+      {
+        "id": "shop-rules",
+        "module": "shops.catalog",
+        "config": {
+          "shops": {
+            "riverside": {
+              "name": "河岸种子铺",
+              "location": "market",
+              "container": "supplier",
+              "account": "supplier",
+              "offers": {
+                "seed": {
+                  "buy": 2,
+                  "sell": 1,
+                  "targetStock": 1
+                },
+                "turnip": {
+                  "buy": 3,
+                  "sell": 2,
+                  "targetStock": 2
+                }
+              }
+            }
+          }
+        }
+      },
+      {
+        "id": "price",
+        "module": "trade-price.fixed",
+        "config": {}
+      },
+      {
+        "id": "calendar",
+        "module": "calendar.cyclic",
+        "config": {
+          "secondsPerDay": 60,
+          "daysPerWeek": 3
+        },
+        "bindings": {
+          "time": "clock"
+        }
+      },
+      {
+        "id": "hours",
+        "module": "availability.schedule",
+        "config": {
+          "days": [
+            0,
+            1
+          ],
+          "windows": [
+            {
+              "start": 10,
+              "end": 50
+            }
+          ]
+        },
+        "bindings": {
+          "calendar": "calendar"
+        }
+      },
+      {
+        "id": "shop",
+        "module": "commerce.shop",
+        "config": {
+          "shop": "riverside",
+          "customerContainer": "player",
+          "customerAccount": "player"
+        },
+        "bindings": {
+          "inventory": "inventory",
+          "wallet": "wallet",
+          "shop-rule": "shop-rules",
+          "trade-price": "price",
+          "availability": "hours",
+          "location": "location"
+        }
+      },
+      {
+        "id": "supplier-recipes",
+        "module": "recipes.catalog",
+        "config": {
+          "recipes": {
+            "press": {
+              "name": "种子铺压种",
+              "inputs": {
+                "turnip": 1
+              },
+              "outputs": {
+                "seed": 1
+              },
+              "durationSeconds": 10
+            }
+          }
+        }
+      },
+      {
+        "id": "kitchen-recipes",
+        "module": "recipes.catalog",
+        "config": {
+          "recipes": {
+            "cook": {
+              "name": "烹制芜菁餐",
+              "inputs": {
+                "turnip": 2
+              },
+              "outputs": {
+                "meal": 1
+              },
+              "durationSeconds": 10
+            }
+          }
+        }
+      },
+      {
+        "id": "seedworks",
+        "module": "crafting.single",
+        "config": {
+          "container": "supplier",
+          "locations": [
+            "market"
+          ]
+        },
+        "bindings": {
+          "inventory": "inventory",
+          "time": "clock",
+          "recipes": "supplier-recipes",
+          "location": "location"
+        }
+      },
+      {
+        "id": "kitchen",
+        "module": "crafting.single",
+        "config": {
+          "container": "player",
+          "locations": [
+            "market"
+          ]
+        },
+        "bindings": {
+          "inventory": "inventory",
+          "time": "clock",
+          "recipes": "kitchen-recipes",
+          "location": "location"
+        }
+      },
+      {
+        "id": "quest-rules",
+        "module": "quests.catalog",
+        "config": {
+          "quests": {
+            "delivery": {
+              "name": "河岸餐食订单",
+              "description": "在集市交一份芜菁餐，换一张订单凭证；可以重复接取。",
+              "prerequisites": [],
+              "delivery": {
+                "meal": 1
+              },
+              "victories": {},
+              "rewards": {
+                "voucher": 1
+              },
+              "experience": 0,
+              "locations": [
+                "market"
+              ],
+              "repeatable": true
+            }
+          }
+        }
+      },
+      {
+        "id": "quests",
+        "module": "quests.journal",
+        "config": {
+          "container": "player"
+        },
+        "bindings": {
+          "quest-rule": "quest-rules",
+          "inventory": "inventory",
+          "location": "location"
+        }
+      },
+      {
+        "id": "settlement-view",
+        "module": "view.settlement.text",
+        "config": {
+          "title": "河岸城镇",
+          "container": "player",
+          "account": "player",
+          "plot": "box",
+          "crop": "turnip"
+        },
+        "bindings": {
+          "inventory": "inventory",
+          "wallet": "wallet",
+          "time": "clock",
+          "calendar": "calendar",
+          "planting": "crops",
+          "commerce": "shop",
+          "quests": "quests",
+          "location": "location"
+        }
+      },
+      {
+        "id": "kitchen-view",
+        "module": "view.workshop.text",
+        "config": {
+          "title": "玩家厨房"
+        },
+        "bindings": {
+          "text-view": "settlement-view",
+          "crafting": "kitchen",
+          "recipes": "kitchen-recipes"
+        }
+      },
+      {
+        "id": "seedworks-view",
+        "module": "view.workshop.text",
+        "config": {
+          "title": "种子铺工坊"
+        },
+        "bindings": {
+          "text-view": "kitchen-view",
+          "crafting": "seedworks",
+          "recipes": "supplier-recipes"
+        }
+      }
+    ]
+  },
+  "demo": [
+    {
+      "target": "quests",
+      "action": "accept",
+      "input": {
+        "quest": "delivery"
+      }
+    },
+    {
+      "target": "clock",
+      "action": "advance",
+      "input": {
+        "seconds": 10
+      }
+    },
+    {
+      "target": "shop",
+      "action": "buy",
+      "input": {
+        "item": "seed",
+        "quantity": 1
+      }
+    },
+    {
+      "target": "location",
+      "action": "move",
+      "input": {
+        "to": "river"
+      }
+    },
+    {
+      "target": "crops",
+      "action": "plant",
+      "input": {
+        "plot": "box",
+        "crop": "turnip"
+      }
+    },
+    {
+      "target": "clock",
+      "action": "advance",
+      "input": {
+        "seconds": 20
+      }
+    },
+    {
+      "target": "crops",
+      "action": "harvest",
+      "input": {
+        "plot": "box"
+      }
+    },
+    {
+      "target": "location",
+      "action": "move",
+      "input": {
+        "to": "market"
+      }
+    },
+    {
+      "target": "shop",
+      "action": "sell",
+      "input": {
+        "item": "turnip",
+        "quantity": 1
+      }
+    },
+    {
+      "target": "seedworks",
+      "action": "start",
+      "input": {
+        "recipe": "press"
+      }
+    },
+    {
+      "target": "kitchen",
+      "action": "start",
+      "input": {
+        "recipe": "cook"
+      }
+    },
+    {
+      "target": "clock",
+      "action": "advance",
+      "input": {
+        "seconds": 10
+      }
+    },
+    {
+      "target": "seedworks",
+      "action": "collect"
+    },
+    {
+      "target": "kitchen",
+      "action": "collect"
+    },
+    {
+      "target": "quests",
+      "action": "turnIn",
+      "input": {
+        "quest": "delivery"
+      }
+    },
+    {
+      "target": "quests",
+      "action": "accept",
+      "input": {
+        "quest": "delivery"
+      }
+    },
+    {
+      "target": "shop",
+      "action": "buy",
+      "input": {
+        "item": "seed",
+        "quantity": 1
+      }
+    },
+    {
+      "target": "location",
+      "action": "move",
+      "input": {
+        "to": "river"
+      }
+    },
+    {
+      "target": "crops",
+      "action": "plant",
+      "input": {
+        "plot": "box",
+        "crop": "turnip"
+      }
+    },
+    {
+      "target": "clock",
+      "action": "advance",
+      "input": {
+        "seconds": 20
+      }
+    },
+    {
+      "target": "crops",
+      "action": "harvest",
+      "input": {
+        "plot": "box"
+      }
+    },
+    {
+      "target": "location",
+      "action": "move",
+      "input": {
+        "to": "market"
+      }
+    },
+    {
+      "target": "clock",
+      "action": "advance",
+      "input": {
+        "seconds": 10
+      }
+    },
+    {
+      "target": "shop",
+      "action": "sell",
+      "input": {
+        "item": "turnip",
+        "quantity": 1
+      }
+    },
+    {
+      "target": "seedworks",
+      "action": "start",
+      "input": {
+        "recipe": "press"
+      }
+    },
+    {
+      "target": "kitchen",
+      "action": "start",
+      "input": {
+        "recipe": "cook"
+      }
+    },
+    {
+      "target": "clock",
+      "action": "advance",
+      "input": {
+        "seconds": 10
+      }
+    },
+    {
+      "target": "seedworks",
+      "action": "collect"
+    },
+    {
+      "target": "kitchen",
+      "action": "collect"
+    },
+    {
+      "target": "quests",
+      "action": "turnIn",
+      "input": {
+        "quest": "delivery"
+      }
+    },
+    {
+      "target": "clock",
+      "action": "advance",
+      "input": {
+        "seconds": 70
+      }
+    },
+    {
+      "target": "clock",
+      "action": "advance",
+      "input": {
+        "seconds": 40
+      }
+    }
+  ]
+}

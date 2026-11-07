@@ -1,0 +1,4 @@
+[
+  { "op": "test", "path": "/world/modules/7/id", "value": "shop-rules" },
+  { "op": "replace", "path": "/world/modules/7/config/shops/riverside/offers/seed/buy", "value": 1 }
+]
