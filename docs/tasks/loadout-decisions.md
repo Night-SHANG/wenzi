@@ -1,0 +1,31 @@
+# SDD ledger — plan: docs/superpowers/plans/2026-11-07-loadout.md
+
+Recorded2026-11-07 11:34Beijing(UTC+08). Branch feat/loadout-skills; base d744c2442b34fd1c789a50e6c7b60cd871642989.
+
+## Rulings
+
+- User explicitly requested continuing a substantial parallel batch without tiny handoffs. Existing development/publication authorization applies; design and execution remain documented/reviewable, no repeat approval gates.
+- Existing dedicated clean checkout + fresh feature branch retains prior agreed isolation. Public main and local d744/treep57 match verified v0.6. Keep matching254-test/6-check/18-runtime baseline; no duplicate unchanged baseline or freshCI query.
+- Use three disjoint implementation owners plus root integration; root alone stages. Parallel user/developer mandate supersedes skill sequential default. Workers focused checks; root owns integrated evidence to avoid races.
+- Choose explicit optional attributes consumption over progression decoration: XP remains one ledger; old consumers/worlds retain fallback. Current additive keys attack/defense prohibit maxHp modifier; no implicit hidden health or expiring-cap clock deadlock. Replacing this rule is a future ordinary module, not host enum expansion.
+- Effects duration is its own replaceable capability; refresh and extend remain independent definitions. No implicit action-time advancement. Skills apply self-effect before strike, then cooldown only on successful transaction.
+- Use exact primary-source concepts with independently implemented TypeScript; do not label FLARE failure semantics atomic or CDDA expiry equal to ours. No upstream source/data copies or new dependencies.
+- Task4 independent gate is combined with final fresh wholebranch review; task1–3 have scoped review. Bounded fix rounds per SDD, one finalfixwave and scoped rereview.
+- Publication after actual verification uses expected SHA and force=false. Immediate report after main update; no newCI polling. Notion updated with actual facts afterward.
+
+## Preflight conflict scan
+
+| Pair/task | Produced vs consumed / internal agreement | Ruling |
+| --- | --- | --- |
+|1/2|equipment.status modifiers/tags vs attributes optional equipment|Exact signed map; aggregator selects keys; ownership remains equipment, no file overlap.|
+|1/3|equipment.status tags vs skills qualification|Skill reads current tags per use; no cached flags.|
+|2/3|effects.apply/status, effect-rule get/list, attributes.status values vs skill/duel|Skill adds optional effect-rule explicitly for references; prestrike effect applies immediately through queries, not deferred-event assumptions.|
+|1,2,3/4|exports/query shapes consumed by worlds/view/tests|Root owns registry/shared world/presentation; no cross-owner edit.|
+|1|swap order vs immediate inventory capacity|Remove incoming before adding outgoing; all writes rollback; list availability is eligibility, not arbitrary downstream capacity promise.|
+|2|refresh/extend rules vs boundary/precision|Positive candidate duration must advance even when oldexpiry is longer; observedAt survives prune; no health caps affected.|
+|3|old attack vs strike and additive optional dependency|One internal settlement; old worlds still use progression, XP never derived provider; strict explicit migration.|
+|4|42 definitions vs29instances/12worlds and effective view|Two duration implementations registered but one bound instance; basecampaign20+9 additions=29; optional attributes view old-save migration required.|
+
+## Dispatch
+
+Task1 equipment, Task2 effects/attributes, Task3 skills/duel, Task4 root integration: prepared against binding spec. Initial review/fix and final gates pending.
