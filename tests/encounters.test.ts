@@ -145,3 +145,19 @@ test('astral ID boundary rejects 129-code-point external definitions without cha
   ok(w, 'encounters', 'claim');
   assert.deepEqual(count(w), { quantity: 1 });
 });
+
+test('strike adds bonus only to outgoing damage and preserves terminal-hit behavior',()=>{
+ const w=setup();ok(w,'encounters','start',{encounter:'wolf'});ok(w,'encounters','strike',{attackBonus:3});assert.equal(status(w).battle.enemyHp,5);assert.deepEqual(w.query('vitals','status'),{hp:16,maxHp:20});ok(w,'encounters','strike',{attackBonus:1});assert.equal(status(w).phase,'victory');assert.deepEqual(w.query('vitals','status'),{hp:16,maxHp:20});fail(w,'encounters','strike',{attackBonus:0});
+});
+test('optional attributes determine both combat sides and strike overflow rolls back',()=>{
+ const attributes:ModuleDefinition={manifest:{id:'test.attributes',title:'Attributes',version:'1.0.0',apiVersion:1,stateVersion:1,provides:{attributes:'1.0.0'}},initialState:()=>({}),queries:{status:{execute:ctx=>ctx.config.status!}}};
+ const d=definition();d.modules.push({id:'attributes',module:'test.attributes',config:{status:{base:{attack:4,defense:1},equipment:{attack:2,defense:1},effects:{},values:{attack:6,defense:2}}}});instance(d,'encounters').bindings!.attributes='attributes';const w=createWorld(registry([attributes]),d);ok(w,'encounters','start',{encounter:'wolf'});ok(w,'encounters','attack');assert.equal(status(w).battle.enemyHp,6);assert.deepEqual(w.query('vitals','status'),{hp:17,maxHp:20});fail(w,'encounters','strike',{attackBonus:Number.MAX_SAFE_INTEGER});
+ for(const values of [{attack:0,defense:1},{attack:4,defense:-1},[],null]){const bad=structuredClone(d);instance(bad,'attributes').config.status={values};assert.throws(()=>createWorld(registry([attributes]),bad));}
+});
+test('explicit old duel migration preserves active and victory state and rejects foreign history',()=>{
+ for(const terminal of [false,true]){const w=setup();ok(w,'encounters','start',{encounter:'wolf'});if(terminal){for(let i=0;i<3;i++)ok(w,'encounters','attack');}const old=w.snapshot();old.modules.encounters!.definitionVersion='1.0.0';const restored=restoreWorld(registry(),old);assert.deepEqual(status(restored),status(w));if(terminal)ok(restored,'encounters','claim');else ok(restored,'encounters','strike',{attackBonus:8});for(const version of ['0.9.0','2.0.0']){const invalid=structuredClone(old);invalid.modules.encounters!.definitionVersion=version;assert.throws(()=>restoreWorld(registry(),invalid));}}
+});
+
+test('attributes provider can supply combat values absent from base progression',()=>{
+ const attrs:ModuleDefinition={manifest:{id:'test.attributes.only',title:'Independent attributes',version:'1.0.0',apiVersion:1,stateVersion:1,provides:{attributes:'1.0.0'}},initialState:()=>({}),queries:{status:{execute:()=>({values:{attack:6,defense:2}})}}};const d=definition();instance(d,'progression').config.override={experience:0,level:1,floorExperience:0,nextExperience:null,values:{maxHp:20}};d.modules.push({id:'attributes',module:'test.attributes.only',config:{}});const w=createWorld(registry([attrs]),d);ok(w,'encounters','start',{encounter:'wolf'});ok(w,'encounters','attack');assert.equal(status(w).battle.enemyHp,6);assert.deepEqual(w.query('vitals','status'),{hp:17,maxHp:20});
+});

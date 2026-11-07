@@ -19,11 +19,26 @@ function checkLocation(ctx: ReadContext, location: string): void {
 }
 function location(ctx: ReadContext): string { const value = ctx.query('location', 'current'); if (!isObject(value) || !isId(value.id)) return ctx.fail('INVALID_LOCATION', '地点能力没有返回有效当前位置'); checkLocation(ctx, value.id); return value.id; }
 function health(ctx: ReadContext, value = ctx.query('vitals', 'status')): { hp: number; maxHp: number } { if (!isObject(value) || !isCount(value.hp) || !isCount(value.maxHp, true) || value.hp > value.maxHp) return ctx.fail('INVALID_VITALS', '生命能力没有返回有效生命值'); return { hp: value.hp, maxHp: value.maxHp }; }
-function progression(ctx: ReadContext, value = ctx.query('progression', 'status')): { experience: number; attack: number; defense: number } {
+function progression(ctx: ReadContext, value = ctx.query('progression', 'status')): { experience: number; values: Record<string, number> } {
   if (!isObject(value) || !isCount(value.experience) || !isCount(value.level, true) || !isCount(value.floorExperience) || value.floorExperience > value.experience
     || !(value.nextExperience === null || (isCount(value.nextExperience) && value.nextExperience > value.experience)) || !isObject(value.values)
-    || Object.entries(value.values).some(([id, n]) => !isId(id) || !isCount(n)) || !isCount(value.values.attack, true) || !isCount(value.values.defense)) return ctx.fail('INVALID_PROGRESSION', '成长能力没有返回有效战斗属性');
-  return { experience: value.experience, attack: value.values.attack, defense: value.values.defense };
+    || Object.entries(value.values).some(([id, n]) => !isId(id) || !isCount(n))) return ctx.fail('INVALID_PROGRESSION', '成长能力没有返回有效战斗属性');
+  return { experience: value.experience, values: value.values as Record<string, number> };
+}
+function attributes(ctx: ReadContext): { attack: number; defense: number } {
+  if (!ctx.has('attributes')) { const { values } = progression(ctx); if (!isCount(values.attack, true) || !isCount(values.defense)) return ctx.fail('INVALID_PROGRESSION', '成长能力没有返回有效战斗属性'); return { attack: values.attack, defense: values.defense }; }
+  const result = ctx.query('attributes', 'status');
+  if (!isObject(result) || !isObject(result.values) || !isCount(result.values.attack, true) || !isCount(result.values.defense)) return ctx.fail('INVALID_ATTRIBUTES', '属性能力没有返回有效战斗属性');
+  return { attack: result.values.attack, defense: result.values.defense };
+}
+function strike(ctx: ExecutionContext, attackBonus: number): JsonObject {
+  const state = ctx.state<State>(), battle = state.battle; if (!battle || battle.phase !== 'active') return ctx.fail('NO_ACTIVE_BATTLE', '没有进行中的战斗');
+  const stats = attributes(ctx), before = health(ctx); if (!before.hp) ctx.fail('PLAYER_DEAD', '角色没有生命');
+  const attack = safeCount(ctx, stats.attack + attackBonus, '技能总攻击');
+  battle.enemyHp = Math.max(0, battle.enemyHp - damage(ctx, attack, battle.enemyDefense));
+  if (!battle.enemyHp) battle.phase = 'victory';
+  else { const amount = damage(ctx, battle.enemyAttack, stats.defense), after = health(ctx, ctx.call('vitals', 'damage', { amount })); if (after.maxHp !== before.maxHp || after.hp !== Math.max(0, before.hp - amount)) ctx.fail('INVALID_VITALS', '生命扣减结果不一致'); if (!after.hp) battle.phase = 'defeat'; }
+  ctx.write(json(state)); return status(state);
 }
 function damage(ctx: ReadContext, attack: number, defense: number): number { const value = ctx.query('combat-rule', 'damage', { attack, defense }); if (!isObject(value) || !isCount(value.damage, true)) return ctx.fail('INVALID_COMBAT_RULE', '战斗规则没有返回正安全整数伤害'); return value.damage; }
 function now(ctx: ReadContext, state: State): number { let baseline = state.battle?.startedAt ?? 0; for (const cooldown of Object.values(state.cooldowns)) baseline = Math.max(baseline, cooldown.startedAt); return readSimulationTime(ctx, baseline); }
@@ -46,11 +61,12 @@ function finish(ctx: ExecutionContext, state: State, battle: FrozenBattle): void
   put(state.cooldowns, battle.encounter, { startedAt, readyAt }); state.battle = null; ctx.write(json(state));
 }
 export const encountersModule: ModuleDefinition = {
-  manifest: { id: 'encounters.duel', title: '可重复决斗', version: '1.0.0', apiVersion: 1, stateVersion: 1, provides: { encounters: '1.0.0' }, requires: Object.fromEntries(['encounter-rule', 'combat-rule', 'location', 'inventory', 'progression', 'vitals', 'time'].map(id => [id, { version: '^1.0.0' }])) },
+  manifest: { id: 'encounters.duel', title: '可重复决斗', version: '1.1.0', apiVersion: 1, stateVersion: 1, provides: { encounters: '1.1.0' }, requires: { attributes: { version: '^1.0.0', optional: true }, ...Object.fromEntries(['encounter-rule', 'combat-rule', 'location', 'inventory', 'progression', 'vitals', 'time'].map(id => [id, { version: '^1.0.0' }])) } },
   configSchema: objectSchema({ container: idSchema }), stateSchema: objectSchema({ battle: { anyOf: [{ type: 'null' }, battleSchema] }, cooldowns: recordSchema(objectSchema({ startedAt: numberSchema, readyAt: numberSchema })), wins: recordSchema(countSchema) }),
   initialState: () => ({ battle: null, cooldowns: {}, wins: {} }),
+  migrate(previous) { if (previous.moduleId !== 'encounters.duel' || previous.version !== '1.0.0' || previous.stateVersion !== 1) throw new Error('不兼容的遭遇状态'); return previous.state; },
   validate(ctx) {
-    const state = ctx.state<State>(); checkContainer(ctx); location(ctx); const hp = health(ctx), stats = progression(ctx);
+    const state = ctx.state<State>(); checkContainer(ctx); location(ctx); const hp = health(ctx), stats = attributes(ctx); progression(ctx);
     for (const entry of catalog(ctx)) references(ctx, entry);
     damage(ctx, stats.attack, 0);
     for (const cooldown of Object.values(state.cooldowns)) if (cooldown.readyAt < cooldown.startedAt) ctx.fail('INVALID_COOLDOWN', '遭遇冷却结束早于开始');
@@ -70,14 +86,8 @@ export const encountersModule: ModuleDefinition = {
       state.battle = { encounter: id, name: value.name, location: value.location, enemyMaxHp: value.enemy.maxHp, enemyHp: value.enemy.maxHp, enemyAttack: value.enemy.attack, enemyDefense: value.enemy.defense, loot: value.loot, experience: value.experience, cooldownSeconds: value.cooldownSeconds, startedAt, phase: 'active' };
       ctx.write(json(state)); return status(state);
     } },
-    attack: { schema: emptySchema, execute(ctx) {
-      const state = ctx.state<State>(), battle = state.battle; if (!battle || battle.phase !== 'active') return ctx.fail('NO_ACTIVE_BATTLE', '没有进行中的战斗');
-      const stats = progression(ctx), before = health(ctx); if (!before.hp) ctx.fail('PLAYER_DEAD', '角色没有生命');
-      battle.enemyHp = Math.max(0, battle.enemyHp - damage(ctx, stats.attack, battle.enemyDefense));
-      if (!battle.enemyHp) battle.phase = 'victory';
-      else { const amount = damage(ctx, battle.enemyAttack, stats.defense), after = health(ctx, ctx.call('vitals', 'damage', { amount })); if (after.maxHp !== before.maxHp || after.hp !== Math.max(0, before.hp - amount)) ctx.fail('INVALID_VITALS', '生命扣减结果不一致'); if (!after.hp) battle.phase = 'defeat'; }
-      ctx.write(json(state)); return status(state);
-    } },
+    attack: { schema: emptySchema, execute: ctx => strike(ctx, 0) },
+    strike: { schema: objectSchema({ attackBonus: countSchema }), execute: (ctx, input) => strike(ctx, input.attackBonus as number) },
     claim: { schema: emptySchema, execute(ctx) {
       const state = ctx.state<State>(), battle = state.battle; if (!battle || battle.phase !== 'victory') return ctx.fail('NO_VICTORY', '没有待领取的胜利奖励');
       if (location(ctx) !== battle.location) ctx.fail('WRONG_LOCATION', '请返回遭遇地点领取奖励');
