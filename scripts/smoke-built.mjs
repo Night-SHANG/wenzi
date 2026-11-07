@@ -328,18 +328,30 @@ try {
   const activeSettlementFile=join(temporary,'active settlement.json');
   writeFileSync(activeSettlementFile,JSON.stringify(activeSettlement));
   const settlementCheckpoint=join(temporary,'settlement active.save.json');
+  const settlementContinuousCheckpoint=join(temporary,'settlement continuous active.save.json');
+  const settlementRoundTripCheckpoint=join(temporary,'settlement round trip active.save.json');
   const settlementFinal=join(temporary,'settlement final.save.json');
   const settlementResumed=join(temporary,'settlement resumed.save.json');
   const settlementBefore=activeSettlement.demo.slice(0,11).map(command=>`do ${JSON.stringify(command)}`);
   settlementBefore.push('do {"target":"crops","action":"plant","input":{"plot":"extra box","crop":"turnip"}}');
-  const settlementAfter=activeSettlement.demo.slice(11).map(command=>`do ${JSON.stringify(command)}`);
+  const settlementAfter=activeSettlement.demo.slice(12).map(command=>`do ${JSON.stringify(command)}`);
   const settlementCommands=[
     ...settlementBefore,
     `save ${settlementCheckpoint}`,
+    'swap settlement-continuous',
+    `save ${settlementContinuousCheckpoint}`,
+    'do {"target":"clock","action":"advance","input":{"seconds":10}}',
+    'swap settlement',
+    `save ${settlementRoundTripCheckpoint}`,
     ...settlementAfter,
+    'swap settlement-continuous',
     `save ${settlementFinal}`,
     `load ${settlementCheckpoint}`,
+    'swap settlement-continuous',
+    'do {"target":"clock","action":"advance","input":{"seconds":10}}',
+    'swap settlement',
     ...settlementAfter,
+    'swap settlement-continuous',
     `save ${settlementResumed}`,
     'exit',
     ''
@@ -348,14 +360,42 @@ try {
   assert.equal(settlementPlay.status,0,settlementPlay.stderr||String(settlementPlay.error));
   assert.doesNotMatch(settlementPlay.stdout,/操作未生效|未完成：/);
   assert.match(settlementPlay.stdout,/已恢复：/);
+  assert.equal((settlementPlay.stdout.match(/已切换模块装配/g)??[]).length,6);
   const midSettlement=JSON.parse(readFileSync(settlementCheckpoint,'utf8'));
+  assert.equal(midSettlement.definition.id,'world.settlement');
+  assert.equal(midSettlement.definition.modules.find(instance=>instance.id==='clock').module,'time.step');
+  assert.equal(midSettlement.modules.clock.definitionId,'time.step');
   assert.equal(midSettlement.modules.clock.state.elapsedSeconds,30);
   assert.equal(midSettlement.modules.seedworks.state.job.readyAt,40);
   assert.equal(midSettlement.modules.kitchen.state.job.readyAt,40);
   assert.equal(midSettlement.modules.crops.state.plots['extra box'].progress,0);
   assert.equal(midSettlement.modules.quests.state.active.delivery.definition.experience,0);
   assert.deepEqual(midSettlement.modules.wallet.state.balances,{player:2,supplier:4});
+  const continuousSettlement=JSON.parse(readFileSync(settlementContinuousCheckpoint,'utf8'));
+  assert.equal(continuousSettlement.definition.id,midSettlement.definition.id);
+  assert.equal(continuousSettlement.definition.modules.find(instance=>instance.id==='clock').module,'time.continuous');
+  assert.equal(continuousSettlement.modules.clock.definitionId,'time.continuous');
+  assert.equal(continuousSettlement.modules.clock.state.elapsedSeconds,30);
+  assert.equal(continuousSettlement.revision,midSettlement.revision);
+  assert.equal(continuousSettlement.eventSequence,midSettlement.eventSequence);
+  for(const id of Object.keys(midSettlement.modules)) {
+    assert.deepEqual(continuousSettlement.modules[id].state,midSettlement.modules[id].state);
+  }
+  const roundTripSettlement=JSON.parse(readFileSync(settlementRoundTripCheckpoint,'utf8'));
+  assert.equal(roundTripSettlement.definition.id,midSettlement.definition.id);
+  assert.equal(roundTripSettlement.definition.modules.find(instance=>instance.id==='clock').module,'time.step');
+  assert.equal(roundTripSettlement.modules.clock.definitionId,'time.step');
+  assert.equal(roundTripSettlement.modules.clock.state.elapsedSeconds,40);
+  assert.deepEqual(roundTripSettlement.modules.seedworks.state,midSettlement.modules.seedworks.state);
+  assert.deepEqual(roundTripSettlement.modules.kitchen.state,midSettlement.modules.kitchen.state);
+  assert.deepEqual(roundTripSettlement.modules.quests.state,midSettlement.modules.quests.state);
+  assert.deepEqual(roundTripSettlement.modules.wallet.state,midSettlement.modules.wallet.state);
+  assert.deepEqual(roundTripSettlement.modules.inventory.state,midSettlement.modules.inventory.state);
+  assert.equal(roundTripSettlement.modules.crops.state.plots['extra box'].progress,0.5);
   const finalSettlement=JSON.parse(readFileSync(settlementFinal,'utf8'));
+  assert.equal(finalSettlement.definition.id,'world.settlement');
+  assert.equal(finalSettlement.definition.modules.find(instance=>instance.id==='clock').module,'time.continuous');
+  assert.equal(finalSettlement.modules.clock.definitionId,'time.continuous');
   assert.equal(finalSettlement.modules.clock.state.elapsedSeconds,190);
   assert.deepEqual(finalSettlement.modules.wallet.state.balances,{player:2,supplier:4});
   assert.equal(finalSettlement.modules.inventory.state.containers.player.voucher,2);
@@ -366,7 +406,7 @@ try {
   assert.equal(finalSettlement.modules.kitchen.state.job,null);
   assert.deepEqual(finalSettlement.modules.quests.state,{active:{},completed:{delivery:2}});
   assert.deepEqual(JSON.parse(readFileSync(settlementResumed,'utf8')),finalSettlement);
-  results.push({world:'interactive-settlement-active-save-load',actions:activeSettlement.demo.length+1+settlementAfter.length,revision:finalSettlement.revision,ok:true});
+  results.push({world:'interactive-settlement-active-save-load',actions:activeSettlement.demo.length+1+settlementAfter.length+1,revision:finalSettlement.revision,ok:true});
 
   const quotedSettlement=structuredClone(originalSettlement);
   const quotedSettlementFile=join(temporary,'quoted settlement.json');

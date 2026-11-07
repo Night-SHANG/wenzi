@@ -108,8 +108,11 @@ test('two settlement clocks compose 63 definitions and complete the literal 32-c
   }
 });
 
-test('active two workshops, a planted box, money and a delivery survive save and clock replacement', async () => {
+test('active two workshops, a planted box, money and a delivery survive the shipped clock package round trip', async () => {
   const pack = await loadWorldPackage('settlement');
+  const continuous = await loadWorldPackage('settlement-continuous');
+  assert.equal(instance(pack.world, 'clock').module, 'time.step');
+  assert.equal(instance(continuous.world, 'clock').module, 'time.continuous');
   const definition = structuredClone(pack.world);
   const containers = object(instance(definition, 'inventory').config.containers);
   object(containers.player).items = { seed: 1 };
@@ -122,25 +125,36 @@ test('active two workshops, a planted box, money and a delivery survive save and
   assert.ok(Object.hasOwn(object(state(world, 'quests').active), 'delivery'));
   assert.equal(object(object(state(world, 'crops').plots)['extra box']).progress, 0);
   const restored = restoreWorld(builtinRegistry(), before);
-  const clockSwap = restored.definition;
-  instance(clockSwap, 'clock').module = 'time.continuous';
-  instance(clockSwap, 'clock').config = {};
-  const changed = reconfigureWorld(builtinRegistry(), restored, clockSwap);
-  for (const command of pack.demo.slice(11)) {
-    const converted = command.target === 'clock'
-      ? { ...command, input: { seconds: (command.input!.steps as number) * 10 } }
-      : command;
-    run(changed, [converted]);
-  }
+  const changed = reconfigureWorld(builtinRegistry(), restored, continuous.world);
+  assert.equal(pack.world.id, 'world.settlement');
+  assert.equal(continuous.world.id, pack.world.id);
+  assert.equal(changed.definition.id, pack.world.id);
+  assert.equal(instance(changed.definition, 'clock').module, 'time.continuous');
+  assert.equal(changed.snapshot().modules.clock!.definitionId, 'time.continuous');
+  for (const row of definition.modules) assert.deepEqual(state(changed, row.id), state(world, row.id));
+  run(changed, continuous.demo.slice(11, 12));
+  assert.deepEqual(changed.query('clock', 'now'), { elapsedSeconds: 40 });
+  assert.equal(object(state(changed, 'seedworks').job).readyAt, 40);
+  assert.equal(object(state(changed, 'kitchen').job).readyAt, 40);
+  assert.equal(object(object(state(changed, 'crops').plots)['extra box']).progress, 0.5);
+  const atForty = changed.snapshot();
+  const roundTrip = reconfigureWorld(builtinRegistry(), changed, pack.world);
+  assert.equal(roundTrip.definition.id, pack.world.id);
+  assert.equal(instance(roundTrip.definition, 'clock').module, 'time.step');
+  assert.equal(roundTrip.snapshot().modules.clock!.definitionId, 'time.step');
+  for (const row of definition.modules) assert.deepEqual(state(roundTrip, row.id), state(changed, row.id));
+  run(roundTrip, pack.demo.slice(12));
   const direct = createWorld(builtinRegistry(), definition);
   run(direct, pack.demo.slice(0, 11));
   act(direct, 'crops', 'plant', { plot: 'extra box', crop: 'turnip' });
   run(direct, pack.demo.slice(11));
-  for (const row of definition.modules) assert.deepEqual(state(changed, row.id), state(direct, row.id));
-  assert.deepEqual(changed.query('crops', 'plots'), { plots: [{ id: 'extra box', crop: 'turnip', name: '芜菁', progress: 1 }] });
-  assert.equal(quantity(changed, 'player', 'voucher'), 2);
+  assert.deepEqual(roundTrip.query('clock', 'now'), { elapsedSeconds: 190 });
+  for (const row of definition.modules) assert.deepEqual(state(roundTrip, row.id), state(direct, row.id));
+  assert.deepEqual(roundTrip.query('crops', 'plots'), { plots: [{ id: 'extra box', crop: 'turnip', name: '芜菁', progress: 1 }] });
+  assert.equal(quantity(roundTrip, 'player', 'voucher'), 2);
   assert.deepEqual(world.snapshot(), before);
   assert.deepEqual(restored.snapshot(), before);
+  assert.deepEqual(changed.snapshot(), atForty);
 });
 
 test('fixed-to-stock replacement preserves holdings and changes the very next real trade', async () => {

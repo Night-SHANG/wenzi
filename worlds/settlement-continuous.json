@@ -1,7 +1,7 @@
 {
   "format": 1,
   "world": {
-    "id": "world.settlement-continuous",
+    "id": "world.settlement",
     "title": "河岸城镇（连续时间）",
     "version": "1.0.0",
     "description": "同一有限经营闭环，使用按秒推进的连续时钟。每天60秒，每周3天，前两天的[10,50)营业；时间跳跃不会免费补货或补钱。",

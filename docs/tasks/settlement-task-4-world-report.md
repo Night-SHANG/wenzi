@@ -50,3 +50,79 @@ Node类型擦除执行不是TypeScript静态验证。本lane没有运行typechec
 保留原有28组，现有world枚举自动加入settlement与continuous两组；额外三组：authored-settlement、interactive-settlement-active-save-load、interactive-settlement-arbitrary-ids。脚本明确断言16world、63定义、最终33组；没有删除旧组。两新world逐项核对32commands/21instances/最终钱货、任务、双job和plots。作者组使用真实fork/patch/validate/demo CLI；active组是仅测试副本额外seed并于t30保存双job+extra crop+quest，续跑、load、再续跑后完整snapshot相等；任意ID组实际CLI play带引号Unicode IDs并检查两工坊和经济终态。
 
 compiled smoke未在本lane执行。Root必须在源码整合完成后运行build与该脚本，实际确认33组及旧回归。focused GREEN和脚本语法检查不能替代这些门禁。
+
+## Final review fix wave 1 — I1 shipped-package identity and actual swap coverage
+
+记录：2026-11-07，北京时间（UTC+08:00）。已读 `docs/tasks/settlement-final-review.md` 完整I1及 `superpowers/subagent-driven-development/references/fix-loop.md`。本轮完整finding list仅I1，无其他修复。上文最初9/9及此前Root459/33门禁均保留为对应历史内容的证据；它们没有执行实际已发布包之间的swap，不能据此声称已覆盖该缺陷。
+
+**Root cause:** step包是`world.settlement`，continuous包误写为`world.settlement-continuous`。既有测试从step定义克隆并只修改clock，保留了正确ID，未读取真实目标包；既有compiled active组只执行save/load。因此主机正确的WORLD_ID_MISMATCH保护拒绝了文档承诺的`swap settlement-continuous`，而合成测试未发现。此次没有放宽主机或绕过ID校验。
+
+**Scope:** 只修改分派的`worlds/settlement-continuous.json`、`tests/settlement-world.test.ts`、`scripts/smoke-built.mjs`，并追加本报告。生产TS、step包、其他world、docs、engine、catalog、version均未修改；无stage/commit/subagent，全量门禁仍由Root负责。
+
+### Covering regression and true RED
+
+先把原active测试改为 `active two workshops, a planted box, money and a delivery survive the shipped clock package round trip`，使用`loadWorldPackage('settlement')`和`loadWorldPackage('settlement-continuous')`。仅测试副本step包增加一颗初始seed，使t30可同时持有extra box、两个paid job与active delivery。swap目标直接传入actual loaded continuous.world，未覆盖或改写任何world ID，未合成目标clock配置。
+
+在修复JSON ID之前执行：
+
+```bash
+node --test --test-name-pattern='shipped clock package round trip' tests/settlement-world.test.ts
+```
+
+结果：exit1，**1 test / 0 pass / 1 fail**，duration3235.86984ms。失败来自真实`reconfigureWorld(registry, restored, continuous.world)`，明确code为**WORLD_ID_MISMATCH**，message为`Reconfiguration must retain the world id`。测试已到t30、验证两个job readyAt40、extra box progress0、delivery active后才失败。这是缺陷所要求的真实行为RED，不是计数/缺文件/测试解析失败。
+
+### Minimal fix and GREEN
+
+唯一生产数据修正：continuous包world.id改为`world.settlement`，与step相同。修正后测试明确断言两个actual packages共享该ID、源包clock为time.step、目标包clock为time.continuous，以及每次swap后definition与SavedModule.definitionId的实际时钟身份。
+
+实际路线：t30 restore→actual continuous包，所有21个owned state与source逐项相等；按continuous.demo的真实seconds10命令到t40，此时两job仍在、extra box progress0.5；再装配actual step包，全部21个state与t40源逐项相等，确认time.step；用step.demo剩余步骤继续至t190。最终所有21个state与从未换钟的直接step运行逐项相等，extra box成熟、voucher2。原world、restored和t40 continuous源对象的完整snapshot均未改变。
+
+执行：
+
+```bash
+node --test tests/settlement-world.test.ts
+node --check scripts/smoke-built.mjs
+```
+
+结果：focused suite **9 tests / 9 pass / 0 fail / 0 skipped**，exit0，duration**26788.004632ms**；smoke脚本语法检查exit0，无输出。原其他八项有意义集成覆盖保留。
+
+### Actual compiled CLI regression
+
+增强原`interactive-settlement-active-save-load`组，不增加或删除组：仍保留旧28+v0.9五=33组。t30 active checkpoint后实际输入`swap settlement-continuous`，保存continuous active检查点；执行seconds10到t40，实际输入`swap settlement`，保存step round-trip检查点；继续原step命令。t190再实际输入`swap settlement-continuous`后保存final。load原t30 checkpoint后执行同样round trip、seconds/steps单位匹配的续跑和最终continuous swap，保留final/resumed**完整snapshot相等**检查。
+
+新断言核对实际六次CLI swap成功输出、每个检查点的shared world ID、clock definition.module与SavedModule.definitionId、t30所有21个state在swap前后不变、t40两paid job/quest/余额/货物保留且crop0.5，以及t190最终continuous身份与原有固定钱货/任务/生产终态。最终direct/resumed都采用真正加载的continuous包配置，不用归一化掩盖配置差异。
+
+依Root授权，在已有未改变TS构建产物上只运行**一项窄compiled诊断**：提取刚修改的active组并执行，未启动完整smoke，不产生/覆盖smoke成功报告。精确命令：
+
+```bash
+node --input-type=module <<'JS'
+import { spawnSync } from 'node:child_process';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { resolve, join } from 'node:path';
+import assert from 'node:assert/strict';
+const cli=resolve('dist/cli/index.js');
+const temporary=mkdtempSync(join(tmpdir(),'settlement-swap-diagnostic-'));
+const results=[];
+try {
+  const smoke=readFileSync('scripts/smoke-built.mjs','utf8');
+  const start=smoke.indexOf('  const originalSettlement=');
+  const end=smoke.indexOf('  const quotedSettlement=',start);
+  assert.ok(start>=0&&end>start);
+  eval(smoke.slice(start,end));
+  assert.equal(results.length,1);
+  assert.equal(results[0].world,'interactive-settlement-active-save-load');
+  console.log(JSON.stringify({diagnostic:'actual compiled settlement package round trip and active save/load',ok:true,groups:results}));
+} finally {
+  rmSync(temporary,{recursive:true,force:true});
+}
+JS
+```
+
+结果：exit0，duration约1.36秒，真实输出：
+
+```json
+{"diagnostic":"actual compiled settlement package round trip and active save/load","ok":true,"groups":[{"world":"interactive-settlement-active-save-load","actions":54,"revision":33,"ok":true}]}
+```
+
+**Remaining validation:** 未运行全量suite/typecheck/build/preflight/33组compiled smoke，也未更改旧门禁证据或指纹。Root需要在本轮最终bytes上执行统一门禁、刷新证据并按fix-loop进行一次I1 scoped re-review。本lane没有其他已知阻塞。
